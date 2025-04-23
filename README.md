@@ -14,17 +14,18 @@ By bridging the emotional gap between children and parents, HeartConnect aims to
 
 **Key Features of HeartConnect**
 
-1.User Authentication: Secure login for children & parents with encrypted sessions.
+1. User Authentication  : Secure login for children & parents with encrypted sessions.
 
-2.Anonymous Identity: Children get random user IDs instead of real names for privacy.
+2. Anonymous Identity   : Children get random user IDs instead of real names for privacy.
 
-3.Psychologist Support: Weekly sessions analyze children's emotions, providing monthly feedback to parents and children, fostering better understanding and emotional connection
+3. Psychologist Support : Weekly sessions analyze children's emotions, providing monthly feedback to parents and children, fostering better understanding and emotional connection
 
-4.Private Chat : Children can chat anonymously with like-minded peers only if both accept the connection.
+4. Private Chat         : Children can chat anonymously with like-minded peers only if both accept the connection.
 
-5.Voice & Video Calls : Secure audio/video calls for deeper conversations.
+5. Voice & Video Calls  : Secure audio/video calls for deeper conversations.
 
 **Day-to-day plan**
+
 Day 1      - Create a low-fidelity design
 
 Day 2      - Create a high-fidelity design
