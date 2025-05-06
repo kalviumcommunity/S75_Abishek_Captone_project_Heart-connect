@@ -1,7 +1,7 @@
 const express = require('express');
 const router=express.Router()
 const bcrypt = require('bcryptjs');
-const { User} = require('../schema/userSchema'); 
+const User = require('../schema/userSchema'); 
 
 
 router.post('/signup', async (req, res) => {
@@ -27,20 +27,31 @@ router.post('/signup', async (req, res) => {
       gender,
     };
     if (role === 'Parent') {
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
+      
+      const hashedPassword = await bcrypt.hash(password, 10);
       userData.password = hashedPassword; 
     const newUser = new User(userData);
     await newUser.save();
 
-    res.status(201).json({ message: 'Parent user registered successfully' });
+    res.status(201).json({ message: 'Parent  registered successfully',data:newUser });
 
   }} catch (error) {
     
     console.error('Parent Signup error:', error);
-    res.status(500).json({ message: 'Server error',error:error });
+    res.status(500).json({ message: 'Server error',error:error.message });
   }
 });
+
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.find();
+    res.status(200).json({ message: 'Users fetched successfully', data: users });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 
 
 
@@ -76,6 +87,7 @@ router.post('/parent/login', async (req, res) => {
     res.status(500).json({ message: 'Server error during login' });
   }
 });
+
 
 
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router=express.Router()
 const bcrypt = require('bcryptjs');
-const {Children}=require('../schema/childSchema')
+const Children=require('../schema/childSchema')
 
 
 
@@ -18,8 +18,8 @@ router.post('/children/signup', async (req, res) => {
       return res.status(409).json({ message: 'Random ID already taken' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(childPassword, salt);
+    
+    const hashedPassword = await bcrypt.hash(childPassword, 10);
 
     const childData = {
       randomId,
