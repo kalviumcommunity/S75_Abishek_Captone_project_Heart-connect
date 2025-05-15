@@ -42,15 +42,25 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-router.get('/users', async (req, res) => {
+
+
+router.get('/user/:phone', async (req, res) => {
   try {
-    const users = await User.find();
-    res.status(200).json({ message: 'Users fetched successfully', data: users });
+    const phone = req.params.phone;
+    const user = await User.findOne({ phone });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found with that mobile number' });
+    }
+
+    res.status(200).json({ message: 'User fetched successfully', data: user });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('Error fetching user by mobile:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+
 
 
 
