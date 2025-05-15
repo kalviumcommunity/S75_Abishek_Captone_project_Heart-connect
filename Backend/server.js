@@ -8,6 +8,8 @@ const parentRoutes=require("./routes/parent")
 const childRoutes=require("./routes/child")
 
 const uri=process.env.uri
+app.use("/",parentRoutes)
+app.use("/",childRoutes)
 mongoose.connect(uri)
 .then(()=>{
     console.log("successfully connected")
@@ -16,8 +18,6 @@ mongoose.connect(uri)
     console.log("Error in connecting")
 })
 
-app.use('/',parentRoutes)
-app.use('/',childRoutes)
 app.listen(PORT,(req,res)=>{
     console.log(`Server is running on http://localhost:${PORT}`)
 })
