@@ -1,7 +1,7 @@
 const express = require('express');
 const router=express.Router()
 const bcrypt = require('bcryptjs');
-const Children=require('../schema/childSchema')
+const Children=require('../Schema/childSchema')
 
 
 
