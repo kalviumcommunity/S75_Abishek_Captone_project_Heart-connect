@@ -1,6 +1,6 @@
 const express = require('express');
 const router=express.Router()
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const User = require('../schema/userSchema'); 
 
 
@@ -97,6 +97,48 @@ router.post('/parent/login', async (req, res) => {
     res.status(500).json({ message: 'Server error during login' });
   }
 });
+
+
+
+
+
+router.put('/update/:phone', async (req, res) => {
+  try {
+    const { phone } = req.params;
+    const { name, age, gender, role, newPhone } = req.body;
+
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ message: 'Parent not found' });
+    }
+
+    if (user.role !== 'Parent') {
+      return res.status(403).json({ message: 'Only Parent data can be updated here' });
+    }
+
+    if (newPhone && newPhone !== phone) {
+      const phoneExists = await User.findOne({ phone: newPhone });
+      if (phoneExists) {
+        return res.status(409).json({ message: 'New phone number already in use' });
+      }
+      user.phone = newPhone;
+    }
+
+    if (name) user.name = name;
+    if (age) user.age = age;
+    if (gender) user.gender = gender;
+    if (role) user.role = role;
+
+    await user.save();
+    res.status(200).json({ message: 'Parent updated successfully', data: user });
+
+  } catch (error) {
+    console.error('Error updating parent:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
 
 
 
