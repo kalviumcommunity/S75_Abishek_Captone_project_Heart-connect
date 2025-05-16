@@ -48,7 +48,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/profile/:randomId', verifyToken, async (req, res) => {
+router.get('/child/:randomId', verifyToken, async (req, res) => {
   const child = await Children.findOne({ randomId: req.params.randomId }).select('-childPassword');
   if (!child) return res.status(404).json({ message: 'Child not found' });
   res.status(200).json({ child });
