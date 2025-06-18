@@ -100,7 +100,7 @@ router.put('/update/:phone', verifyToken, async (req, res) => {
 
     if (newPhone && newPhone !== user.phone) {
       const existing = await User.findOne({ phone: newPhone });
-      if (existing) return res.status(409).json({ message: 'New phone already in use' });
+      if (existing) return res.status(409).json({ message: 'New phone number already in use' });
       user.phone = newPhone;
     }
 
