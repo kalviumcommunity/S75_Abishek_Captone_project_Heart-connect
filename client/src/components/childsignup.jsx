@@ -1,0 +1,110 @@
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios'; 
+import "../styles/signup.css";
+
+const ChildrenPassword = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [randomId, setRandomId] = useState('');
+  const [password, setPassword] = useState('');
+  const { name, role } = location.state || {}; 
+
+  useEffect(() => {
+    const nouns = [
+      "cat", "dog", "bat", "fox", "owl", "bee", "cow", "pig", "ant", "rat",
+      "hen", "yak", "ram", "ape", "emu", "eel", "cod", "car", "bus", "van",
+      "toy", "cup", "jar", "hat", "map", "pen", "sun", "sky", "bed", "cap",
+      "net", "mud", "log", "zip", "pod", "kit", "pan", "pot", "lid", "tap",
+      "fan", "bun", "hog", "orb", "bud", "web", "rod", "cub", "bug", "den",
+      "pit", "owl", "cat", "dog", "bat", "pig", "cow", "ram", "bee", "rat",
+      "kit", "sun", "ape", "eel", "fox", "yak", "emu", "ear", "toe", "ant"
+    ];
+    
+    
+    const adjectives = [
+      "big", "hot", "red", "fun", "fat", "mad", "sad", "bad", "dry", "wet",
+      "icy", "sun", "low", "new", "old", "raw", "dim", "sky", "tan", "odd",
+      "shy", "sly", "apt", "coy", "few", "fit", "zoo", "yum", "jam", "hip",
+      "tip", "fab", "rad", "zen", "wow", "pop", "yay", "bum", "hug", "mum",
+      "kid", "joy", "zip", "zap", "top", "fun", "big", "hot", "mad", "new",
+      "raw", "icy", "wet", "fat", "sun", "tan", "low", "yum", "wow", "fab",
+      "hip", "fun", "pop", "rad", "zen", "hug", "yay", "jam", "tip", "wow"
+    ];
+    
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    const randomNumber = Math.floor(10 + Math.random() * 90); 
+
+    setRandomId(`${randomAdjective}${randomNoun}${randomNumber}`);
+  }, []);
+
+  const handleSignup = async () => {
+    try {
+      
+      const response = await axios.post('http://localhost:4001/api/children/signup', {
+        name,
+        randomId,
+        childPassword: password
+      });
+      localStorage.setItem('identity', randomId);
+      localStorage.setItem('userRole', 'child');
+      
+      console.log('Child registered successfully:', response.data.message);
+      alert('Signed up successfully!');
+      
+    
+      navigate('/home');
+    } catch (error) {
+      if (error.response) {
+        console.error('Error:', error.response.data.message);
+        alert(`Error: ${error.response.data.message}`);
+      } else if (error.request) {
+        console.error('No response from server');
+        alert('No response from server');
+      } else {
+        console.error('Error:', error.message);
+        alert(`Error: ${error.message}`);
+      }
+    }
+  };
+
+  return (
+    <div className="children-landing">
+      <div className="card">
+        <div className="intro-text">
+          📖 Your journey starts here. <br />
+          Use your <span className="highlight">random ID</span> to express your feelings freely.
+        </div>
+
+        {role === "Children" && (
+          <div className="form-field">
+            <label>Name:</label>
+            <input type="text" value={name} readOnly />
+          </div>
+        )}
+
+        <div className="form-field">
+          <label>Your Random ID:</label>
+          <input type="text" value={randomId} readOnly />
+        </div>
+
+        <div className="form-field">
+          <label>Set Your Password:</label>
+          <input
+            type="password"
+            placeholder="Enter Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        <button className="submit-btn" onClick={handleSignup}>
+          Signup
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ChildrenPassword;
