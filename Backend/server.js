@@ -6,7 +6,8 @@ const mongoose=require("mongoose")
 require("dotenv").config()
 const parentRoutes=require("./routes/parent")
 const childRoutes=require("./routes/child")
-
+const cors=require("cors")
+app.use(cors())
 const uri=process.env.uri
 app.use("/",parentRoutes)
 app.use("/",childRoutes)

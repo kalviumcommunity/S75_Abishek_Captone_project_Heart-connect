@@ -1,0 +1,174 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+
+.cont {
+  background: linear-gradient(to right, #fbc2eb, #a6c1ee);
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.child-home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-top: 70px; 
+  overflow: hidden;
+  position: relative;
+}
+
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(7, 107, 206, 0.9);
+  padding: 12px 20px;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 220px;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links a {
+  color: #ecf0f1;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.3s;
+}
+
+.nav-links a:hover {
+  background-color: rgba(236, 240, 241, 0.2);
+}
+
+.posted-feelings {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 120px; 
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.posted-feeling {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+
+.inpDiv {
+  position: sticky;
+  bottom: 0;
+  background: rgba(128, 128, 128, 0.2);
+  padding: 10px 20px;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+}
+
+.feeling-input {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.feeling-input p {
+  margin: 0;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.feeling-input textarea {
+  flex: 1;
+  height: 30px;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+
+.feeling-input button {
+  padding: 8px 14px;
+  font-size: 14px;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.feeling-input button:hover {
+  background-color: #1e8449;
+}
+
+.interaction-buttons {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.heart-btn,
+.comment-btn,
+.share-btn,
+.friend-btn {
+  background-color: white;
+  border: 1px solid #ccc;
+  color: black;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+
+
+.heart-btn {
+  transition: all 0.3s ease;
+  color: #555;
+}
+
+.heart-btn.liked {
+  color: #ff0000;
+  transform: scale(1.1);
+}
+
+
+
+.comment-btn:hover,
+.share-btn:hover,
+.friend-btn:hover {
+  background-color: #e0e0e0;
+}
