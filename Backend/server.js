@@ -9,8 +9,8 @@ const childRoutes=require("./routes/child")
 const cors=require("cors")
 app.use(cors())
 const uri=process.env.uri
-app.use("/",parentRoutes)
-app.use("/",childRoutes)
+app.use("/parent",parentRoutes)
+app.use("/child",childRoutes)
 mongoose.connect(uri)
 .then(()=>{
     console.log("successfully connected")
