@@ -21,7 +21,7 @@ const ParentLogin = () => {
     e.preventDefault();
 
     try {
-      const response = await axios.post('http://localhost:4001/api/parent/login', credentials);
+      const response = await axios.post('https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/login', credentials);
       localStorage.setItem('identity', credentials.name);
       localStorage.setItem('userRole', 'parent');
       console.log('Login successful:', response.data);

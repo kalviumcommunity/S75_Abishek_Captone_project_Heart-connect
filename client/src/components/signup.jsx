@@ -32,7 +32,7 @@ const SignupForm = () => {
       navigate("/children-page", { state: { ...formData } });
     } else {
       try {
-        const response = await axios.post('http://localhost:4001/api/parent/signup', formData);
+        const response = await axios.post('https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/signup', formData);
         console.log('User registered successfully:', response.data.message);
         alert('User registered successfully');
         
