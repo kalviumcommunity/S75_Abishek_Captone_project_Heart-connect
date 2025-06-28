@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Children = require('../Schema/childSchema');
+const Children = require('../schema/childSchema');
 const verifyToken = require('../middleware/auth');
 const router = express.Router();
 
