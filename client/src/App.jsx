@@ -15,6 +15,7 @@ function App() {
         <Route path="/home" element={<ChildHomePage />} />
         <Route path='/parent-login' element={<ParentLogin />}/>
         <Route path='/children-login' element={<ChildrenLogin />}/>
+        
         {/* <Route path="/chat" element={<ChatPage />} />
         <Route path="/request" element={<RequestPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
