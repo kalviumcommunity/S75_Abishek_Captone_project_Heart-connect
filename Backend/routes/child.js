@@ -42,9 +42,9 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(401).json({ message: 'Invalid password' });
 
     const token = jwt.sign({ id: child._id, role: 'Child' }, JWT_SECRET, { expiresIn: '2h' });
-    res.status(200).json({ message: 'Login successful', token });
+    res.status(200).json({ message: 'Login Successful', token });
   } catch (err) {
-    res.status(500).json({ message: 'Login error', error: err.message });
+    res.status(500).json({ message: 'Login Error', error: err.message });
   }
 });
 

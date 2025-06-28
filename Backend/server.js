@@ -7,7 +7,8 @@ require("dotenv").config()
 const parentRoutes=require("./routes/parent")
 const childRoutes=require("./routes/child")
 const cors=require("cors")
-app.use(cors())
+let allowedOrgins={orgin :['http://localhost:5173']}
+app.use(cors(allowedOrgins))
 const uri=process.env.uri
 app.use("/parent",parentRoutes)
 app.use("/child",childRoutes)
