@@ -69,3 +69,7 @@ Day 20     - Update Bruno/API templates in the repository
 Day 21     - Integrate JWT-based authentication
 
  
+
+
+
+Frontend Deployment link :  https://heart-connect.netlify.app/
