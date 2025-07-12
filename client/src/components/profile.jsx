@@ -27,13 +27,12 @@ const ProfilePage = () => {
       setUserDetails({
         name: localStorage.getItem("name") || "Anonymous",
         role: "Children",
-        identity: identity,
+        identity,
         gender: localStorage.getItem("gender") || "-",
         phone: "-",
-        age: "-"
+        age: localStorage.getItem("age") || "-"
       });
     } else {
-      // For parent
       setUserDetails({
         name: localStorage.getItem("name") || "-",
         role: "Parent",

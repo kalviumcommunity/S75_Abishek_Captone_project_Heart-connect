@@ -66,14 +66,19 @@ router.post('/login', async (req, res) => {
     res.status(200).json({
       message: 'Login successful',
       token,
-      identity: user.phone,
-      name: user.name
+      user: {
+        name: user.name,
+        phone: user.phone,
+        age: user.age || '-',
+        gender: user.gender || '-'
+      }
     });
 
   } catch (error) {
     res.status(500).json({ message: 'Login error', error: error.message });
   }
 });
+
 
 router.get('/user/:phone', verifyToken, async (req, res) => {
   try {
@@ -99,7 +104,9 @@ router.put('/update/:phone', verifyToken, async (req, res) => {
 
     if (newPhone && newPhone !== user.phone) {
       const existing = await User.findOne({ phone: newPhone });
-      if (existing) return res.status(409).json({ message: 'New phone number already in use' });
+      if (existing) {
+        return res.status(409).json({ message: 'New phone number already in use' });
+      }
       user.phone = newPhone;
     }
 

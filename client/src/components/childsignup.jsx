@@ -6,13 +6,14 @@ import "../styles/signup.css";
 const ChildrenPassword = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
   const [randomId, setRandomId] = useState('');
   const [password, setPassword] = useState('');
 
-  // ✅ Capture all needed values passed from Signup
-  const { name, role, age, gender } = location.state || {}; 
+  // Destructure state passed from signup
+  const { name, role, age, gender } = location.state || {};
 
-  // ✅ Generate random ID
+  // Generate randomId on mount
   useEffect(() => {
     const nouns = [
       "cat", "dog", "bat", "fox", "owl", "bee", "cow", "pig", "ant", "rat",
@@ -43,32 +44,27 @@ const ChildrenPassword = () => {
 
   const handleSignup = async () => {
     try {
+      // API call to child signup route
       const response = await axios.post('https://s75-abishek-captone-project-heart-dinq.onrender.com/child/signup', {
         name,
         randomId,
         childPassword: password
       });
 
-      // ✅ Save all necessary user info in localStorage for Profile page
+      // Save necessary info in localStorage for Profile
       localStorage.setItem('identity', randomId);
       localStorage.setItem('userRole', 'child');
       localStorage.setItem('name', name);
       localStorage.setItem('age', age || '-');
       localStorage.setItem('gender', gender || '-');
 
-      console.log('Child registered successfully:', response.data.message);
       alert('Signed up successfully!');
       navigate('/home');
     } catch (error) {
       if (error.response) {
-        console.error('Error:', error.response.data.message);
         alert(`Error: ${error.response.data.message}`);
-      } else if (error.request) {
-        console.error('No response from server');
-        alert('No response from server');
       } else {
-        console.error('Error:', error.message);
-        alert(`Error: ${error.message}`);
+        alert('An unexpected error occurred. Try again.');
       }
     }
   };
@@ -112,6 +108,7 @@ const ChildrenPassword = () => {
             placeholder="Enter Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
 

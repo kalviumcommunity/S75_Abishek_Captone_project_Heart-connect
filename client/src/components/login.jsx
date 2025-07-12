@@ -26,15 +26,28 @@ const ParentLogin = () => {
         credentials
       );
 
-      // Save all needed info for profile
-      localStorage.setItem('identity', credentials.name);
-      localStorage.setItem('userRole', 'parent');
-      localStorage.setItem('name', credentials.name);
-      localStorage.setItem('phone', credentials.phone);
-      localStorage.setItem('gender', '-'); // Replace with actual value if backend sends it
-      localStorage.setItem('age', '-');    // Replace with actual value if backend sends it
+      const token = response.data.token;
 
-      console.log('Login successful:', response.data);
+      // ✅ Fetch full profile using phone and token
+      const profileRes = await axios.get(
+        `https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/user/${credentials.phone}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const userData = profileRes.data.data;
+
+      // ✅ Save everything to localStorage
+      localStorage.setItem('identity', userData.phone); // for profile display
+      localStorage.setItem('userRole', 'parent');
+      localStorage.setItem('name', userData.name || '-');
+      localStorage.setItem('phone', userData.phone || '-');
+      localStorage.setItem('age', userData.age || '-');
+      localStorage.setItem('gender', userData.gender || '-');
+
       alert('Login successful!');
       navigate('/home');
     } catch (error) {

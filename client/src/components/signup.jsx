@@ -23,12 +23,21 @@ const SignupForm = () => {
       ...prevData,
       [name]: value,
     }));
+
+    // Save user role to localStorage as lowercase (child/parent)
+    if (name === "role") {
+      localStorage.setItem("userRole", value.toLowerCase());
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Clear any old session data
+    localStorage.clear();
+
     if (formData.role === "Children") {
+      // Store some data temporarily for children until randomId is generated
       navigate("/children-page", { state: { ...formData } });
     } else {
       try {
@@ -39,7 +48,7 @@ const SignupForm = () => {
 
         alert('User registered successfully');
 
-        // ✅ Save parent data
+        // Save parent details in localStorage
         localStorage.setItem("identity", formData.phone);
         localStorage.setItem("userRole", "parent");
         localStorage.setItem("name", formData.name);
@@ -77,9 +86,30 @@ const SignupForm = () => {
 
         {!isLogin ? (
           <form onSubmit={handleSubmit}>
-            <input type="text" name="name" placeholder="Enter Your Name" value={formData.name} onChange={handleChange} required />
-            <input type="number" name="age" placeholder="Enter Your Age" value={formData.age} onChange={handleChange} required />
-            <input type="text" name="phone" placeholder="Enter Your Phone Number" value={formData.phone} onChange={handleChange} required />
+            <input
+              type="text"
+              name="name"
+              placeholder="Enter Your Name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+            <input
+              type="number"
+              name="age"
+              placeholder="Enter Your Age"
+              value={formData.age}
+              onChange={handleChange}
+              required
+            />
+            <input
+              type="text"
+              name="phone"
+              placeholder="Enter Your Phone Number"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+            />
 
             <select name="role" value={formData.role} onChange={handleChange} required>
               <option value="" disabled hidden>Enter your Role</option>
@@ -88,7 +118,14 @@ const SignupForm = () => {
             </select>
 
             {formData.role === "Parent" && (
-              <input type="password" name="password" placeholder="Enter a Password" value={formData.password} onChange={handleChange} required />
+              <input
+                type="password"
+                name="password"
+                placeholder="Enter a Password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
             )}
 
             <select name="gender" value={formData.gender} onChange={handleChange} required>
