@@ -32,30 +32,33 @@ const SignupForm = () => {
       navigate("/children-page", { state: { ...formData } });
     } else {
       try {
-        const response = await axios.post('https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/signup', formData);
-        console.log('User registered successfully:', response.data.message);
+        const response = await axios.post(
+          'https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/signup',
+          formData
+        );
+
         alert('User registered successfully');
-        
-        
+
+        // ✅ Save parent data
+        localStorage.setItem("identity", formData.phone);
+        localStorage.setItem("userRole", "parent");
+        localStorage.setItem("name", formData.name);
+        localStorage.setItem("phone", formData.phone);
+        localStorage.setItem("gender", formData.gender);
+        localStorage.setItem("age", formData.age);
+
         navigate("/home");
       } catch (error) {
         if (error.response) {
-          console.error('Error:', error.response.data.message);
           alert(`Error: ${error.response.data.message}`);
-        } else if (error.request) {
-          console.error('No response from server');
-          alert('No response from server');
         } else {
-          console.error('Error:', error.message);
-          alert(`Error: ${error.message}`);
+          alert('Signup failed');
         }
       }
     }
   };
 
-  const handleLoginRoleChange = (e) => {
-    setLoginRole(e.target.value);
-  };
+  const handleLoginRoleChange = (e) => setLoginRole(e.target.value);
 
   const handleLoginSubmit = () => {
     if (loginRole === "Children") {
@@ -71,66 +74,24 @@ const SignupForm = () => {
     <div className="signup-container">
       <div className="signup-form">
         <h2>Create a new account</h2>
-        
-        
+
         {!isLogin ? (
-          
           <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              name="name"
-              placeholder="Enter Your name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
+            <input type="text" name="name" placeholder="Enter Your Name" value={formData.name} onChange={handleChange} required />
+            <input type="number" name="age" placeholder="Enter Your Age" value={formData.age} onChange={handleChange} required />
+            <input type="text" name="phone" placeholder="Enter Your Phone Number" value={formData.phone} onChange={handleChange} required />
 
-            <input
-              type="number"
-              name="age"
-              placeholder="Enter Your Age"
-              value={formData.age}
-              onChange={handleChange}
-              required
-            />
-
-            <input
-              type="text"
-              name="phone"
-              placeholder="Enter Your Phone Number"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-            />
-
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              required
-            >
+            <select name="role" value={formData.role} onChange={handleChange} required>
               <option value="" disabled hidden>Enter your Role</option>
               <option value="Children">Children</option>
               <option value="Parent">Parent</option>
             </select>
 
             {formData.role === "Parent" && (
-              <input
-                type="password"
-                name="password"
-                placeholder="Enter a Password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
+              <input type="password" name="password" placeholder="Enter a Password" value={formData.password} onChange={handleChange} required />
             )}
 
-            <select
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              required
-            >
+            <select name="gender" value={formData.gender} onChange={handleChange} required>
               <option value="" disabled hidden>Gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -140,14 +101,9 @@ const SignupForm = () => {
             <button type="submit">Sign Up</button>
           </form>
         ) : (
-          // Login Form
           <div className="login-role-form">
             <h3>Login</h3>
-            <select
-              value={loginRole}
-              onChange={handleLoginRoleChange}
-              required
-            >
+            <select value={loginRole} onChange={handleLoginRoleChange} required>
               <option value="" disabled hidden>Select Your Role</option>
               <option value="Children">Children</option>
               <option value="Parent">Parent</option>
@@ -156,21 +112,14 @@ const SignupForm = () => {
           </div>
         )}
 
-       
         <div className="login-link">
           {!isLogin ? (
             <span>
-              Already have an account?{' '}
-              <a onClick={() => setIsLogin(true)} style={{ color: 'lightblue', cursor: 'pointer' }}>
-                Login
-              </a>
+              Already have an account? <a onClick={() => setIsLogin(true)} style={{ color: 'lightblue', cursor: 'pointer' }}>Login</a>
             </span>
           ) : (
             <span>
-              Don't have an account?{' '}
-              <a onClick={() => setIsLogin(false)} style={{ color: 'lightblue', cursor: 'pointer' }}>
-                Sign Up
-              </a>
+              Don't have an account? <a onClick={() => setIsLogin(false)} style={{ color: 'lightblue', cursor: 'pointer' }}>Sign Up</a>
             </span>
           )}
         </div>

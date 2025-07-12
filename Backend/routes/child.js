@@ -5,7 +5,7 @@ const Children = require('../Schema/childSchema');
 const verifyToken = require('../middleware/auth');
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET ;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 router.post('/signup', async (req, res) => {
   try {
@@ -29,8 +29,6 @@ router.post('/signup', async (req, res) => {
 });
 
 
-
-
 router.post('/login', async (req, res) => {
   try {
     const { randomId, childPassword } = req.body;
@@ -41,17 +39,28 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(childPassword, child.childPassword);
     if (!isMatch) return res.status(401).json({ message: 'Invalid password' });
 
-    const token = jwt.sign({ id: child._id, role: 'Child' }, JWT_SECRET, { expiresIn: '2h' });
-    res.status(200).json({ message: 'Login Successful', token });
+    const token = jwt.sign({ id: child._id, role: 'Child', randomId: child.randomId }, JWT_SECRET, { expiresIn: '2h' });
+
+    res.status(200).json({ 
+      message: 'Login Successful', 
+      token, 
+      identity: child.randomId, 
+      name: child.name 
+    });
   } catch (err) {
     res.status(500).json({ message: 'Login Error', error: err.message });
   }
 });
 
+
 router.get('/child/:randomId', verifyToken, async (req, res) => {
-  const child = await Children.findOne({ randomId: req.params.randomId }).select('-childPassword');
-  if (!child) return res.status(404).json({ message: 'Child not found' });
-  res.status(200).json({ child });
+  try {
+    const child = await Children.findOne({ randomId: req.params.randomId }).select('-childPassword');
+    if (!child) return res.status(404).json({ message: 'Child not found' });
+    res.status(200).json({ child });
+  } catch (err) {
+    res.status(500).json({ message: 'Error retrieving child', error: err.message });
+  }
 });
 
 module.exports = router;
