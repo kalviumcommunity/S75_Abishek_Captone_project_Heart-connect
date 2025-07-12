@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import "../styles/signup.css"; 
+import "../styles/signup.css"; // reuse signup styles
 
 const ChildrenLogin = () => {
-  const [credentials, setCredentials] = useState({ randomId: '', childPassword: '' });
+  const [credentials, setCredentials] = useState({
+    randomId: '',
+    childPassword: ''
+  });
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -16,9 +20,21 @@ const ChildrenLogin = () => {
     e.preventDefault();
 
     try {
-      const response = await axios.post('https://s75-abishek-captone-project-heart-dinq.onrender.com/child/login', credentials);
+      const response = await axios.post(
+        'https://s75-abishek-captone-project-heart-dinq.onrender.com/child/login',
+        credentials
+      );
+
+      const userData = response.data.user || {};
+
+      // Store essential user info in localStorage
       localStorage.setItem('identity', credentials.randomId);
       localStorage.setItem('userRole', 'child');
+      localStorage.setItem('name', userData.name || credentials.randomId);
+      localStorage.setItem('age', userData.age?.toString() || '-');
+      localStorage.setItem('gender', userData.gender || '-');
+      localStorage.setItem('phone', '-'); // not applicable to child
+
       console.log('Login successful:', response.data);
       alert('Child login successful!');
       navigate('/home');

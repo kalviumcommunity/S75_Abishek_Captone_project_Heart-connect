@@ -43,11 +43,6 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-
-
-
-
-
 router.post('/login', async (req, res) => {
   try {
     const { name, phone, password } = req.body;
@@ -62,17 +57,23 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign(
+      { id: user._id, role: user.role, phone: user.phone },
+      JWT_SECRET,
+      { expiresIn: '2h' }
+    );
 
-    res.status(200).json({ message: 'Login successful', token });
+    res.status(200).json({
+      message: 'Login successful',
+      token,
+      identity: user.phone,
+      name: user.name
+    });
 
   } catch (error) {
     res.status(500).json({ message: 'Login error', error: error.message });
   }
 });
-
-
-
 
 router.get('/user/:phone', verifyToken, async (req, res) => {
   try {
@@ -85,8 +86,6 @@ router.get('/user/:phone', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
-
-
 
 
 router.put('/update/:phone', verifyToken, async (req, res) => {

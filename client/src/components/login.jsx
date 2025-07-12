@@ -21,12 +21,22 @@ const ParentLogin = () => {
     e.preventDefault();
 
     try {
-      const response = await axios.post('https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/login', credentials);
+      const response = await axios.post(
+        'https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/login',
+        credentials
+      );
+
+      // Save all needed info for profile
       localStorage.setItem('identity', credentials.name);
       localStorage.setItem('userRole', 'parent');
+      localStorage.setItem('name', credentials.name);
+      localStorage.setItem('phone', credentials.phone);
+      localStorage.setItem('gender', '-'); // Replace with actual value if backend sends it
+      localStorage.setItem('age', '-');    // Replace with actual value if backend sends it
+
       console.log('Login successful:', response.data);
       alert('Login successful!');
-      navigate('/home'); 
+      navigate('/home');
     } catch (error) {
       if (error.response) {
         alert(`Login failed: ${error.response.data.message}`);

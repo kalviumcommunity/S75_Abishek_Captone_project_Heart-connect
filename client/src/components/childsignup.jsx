@@ -8,8 +8,11 @@ const ChildrenPassword = () => {
   const navigate = useNavigate();
   const [randomId, setRandomId] = useState('');
   const [password, setPassword] = useState('');
-  const { name, role } = location.state || {}; 
 
+  // ✅ Capture all needed values passed from Signup
+  const { name, role, age, gender } = location.state || {}; 
+
+  // ✅ Generate random ID
   useEffect(() => {
     const nouns = [
       "cat", "dog", "bat", "fox", "owl", "bee", "cow", "pig", "ant", "rat",
@@ -20,8 +23,7 @@ const ChildrenPassword = () => {
       "pit", "owl", "cat", "dog", "bat", "pig", "cow", "ram", "bee", "rat",
       "kit", "sun", "ape", "eel", "fox", "yak", "emu", "ear", "toe", "ant"
     ];
-    
-    
+
     const adjectives = [
       "big", "hot", "red", "fun", "fat", "mad", "sad", "bad", "dry", "wet",
       "icy", "sun", "low", "new", "old", "raw", "dim", "sky", "tan", "odd",
@@ -31,7 +33,7 @@ const ChildrenPassword = () => {
       "raw", "icy", "wet", "fat", "sun", "tan", "low", "yum", "wow", "fab",
       "hip", "fun", "pop", "rad", "zen", "hug", "yay", "jam", "tip", "wow"
     ];
-    
+
     const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
     const randomNumber = Math.floor(10 + Math.random() * 90); 
@@ -41,19 +43,21 @@ const ChildrenPassword = () => {
 
   const handleSignup = async () => {
     try {
-      
       const response = await axios.post('https://s75-abishek-captone-project-heart-dinq.onrender.com/child/signup', {
         name,
         randomId,
         childPassword: password
       });
+
+      // ✅ Save all necessary user info in localStorage for Profile page
       localStorage.setItem('identity', randomId);
       localStorage.setItem('userRole', 'child');
-      
+      localStorage.setItem('name', name);
+      localStorage.setItem('age', age || '-');
+      localStorage.setItem('gender', gender || '-');
+
       console.log('Child registered successfully:', response.data.message);
       alert('Signed up successfully!');
-      
-    
       navigate('/home');
     } catch (error) {
       if (error.response) {
@@ -78,10 +82,22 @@ const ChildrenPassword = () => {
         </div>
 
         {role === "Children" && (
-          <div className="form-field">
-            <label>Name:</label>
-            <input type="text" value={name} readOnly />
-          </div>
+          <>
+            <div className="form-field">
+              <label>Name:</label>
+              <input type="text" value={name} readOnly />
+            </div>
+
+            <div className="form-field">
+              <label>Age:</label>
+              <input type="text" value={age} readOnly />
+            </div>
+
+            <div className="form-field">
+              <label>Gender:</label>
+              <input type="text" value={gender} readOnly />
+            </div>
+          </>
         )}
 
         <div className="form-field">
