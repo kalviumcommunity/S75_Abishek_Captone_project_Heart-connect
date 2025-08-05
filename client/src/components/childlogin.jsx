@@ -25,17 +25,18 @@ const ChildrenLogin = () => {
         credentials
       );
 
+      // Extract user info from response
       const userData = response.data.user || {};
 
-      // Store essential user info in localStorage
+      // Save child info for profile page display
       localStorage.setItem('identity', credentials.randomId);
       localStorage.setItem('userRole', 'child');
       localStorage.setItem('name', userData.name || credentials.randomId);
       localStorage.setItem('age', userData.age?.toString() || '-');
       localStorage.setItem('gender', userData.gender || '-');
-      localStorage.setItem('phone', '-'); // not applicable to child
+      localStorage.setItem('phone', '-'); // Not applicable for children
 
-      console.log('Login successful:', response.data);
+      console.log('Child login successful:', response.data);
       alert('Child login successful!');
       navigate('/home');
     } catch (error) {

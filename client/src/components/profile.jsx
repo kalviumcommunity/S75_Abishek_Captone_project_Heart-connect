@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import "../styles/profile.css";
 
 const ProfilePage = () => {
@@ -27,13 +27,12 @@ const ProfilePage = () => {
       setUserDetails({
         name: localStorage.getItem("name") || "Anonymous",
         role: "Children",
-        identity: identity,
+        identity,
         gender: localStorage.getItem("gender") || "-",
         phone: "-",
-        age: "-"
+        age: localStorage.getItem("age") || "-"
       });
     } else {
-      // For parent
       setUserDetails({
         name: localStorage.getItem("name") || "-",
         role: "Parent",
@@ -46,15 +45,29 @@ const ProfilePage = () => {
   }, [navigate]);
 
   return (
-    <div className="profile-container">
-      <h2>👤 My Profile</h2>
-      <div className="profile-box">
-        <p><strong>Name:</strong> {userDetails.name}</p>
-        <p><strong>Role:</strong> {userDetails.role}</p>
-        <p><strong>Random ID / Phone:</strong> {userDetails.identity}</p>
-        <p><strong>Gender:</strong> {userDetails.gender}</p>
-        <p><strong>Age:</strong> {userDetails.age}</p>
-      </div>
+    <div className="profile-wrapper">
+      <nav className="navbar">
+        <ul className="nav-links">
+          <li><Link to="/home">Home</Link></li>
+          <li><Link to="/chat">Chat</Link></li>
+          <li><Link to="/request">Friend Request</Link></li>
+          <li><Link to="/analysis">Analysis</Link></li>
+          <li><Link to="/profile">Profile</Link></li>
+        </ul>
+      </nav>
+
+      <main className="profile-container">
+        <h2>My Profile</h2>
+        <section className="profile-box">
+          <p><strong>Name:</strong> {userDetails.name}</p>
+          <p><strong>Role:</strong> {userDetails.role}</p>
+          <p>
+            <strong>{userDetails.role === 'Parent' ? 'Phone' : 'Random ID'}:</strong> {userDetails.identity}
+          </p>
+          <p><strong>Gender:</strong> {userDetails.gender}</p>
+          <p><strong>Age:</strong> {userDetails.age}</p>
+        </section>
+      </main>
     </div>
   );
 };

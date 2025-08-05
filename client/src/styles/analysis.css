@@ -1,0 +1,190 @@
+/* Background Body Styling (use this in your global CSS or wrap this page) */
+body {
+  background: linear-gradient(135deg, #c2e9fb, #a1c4fd, #fbc2eb, #fcb69f);
+  background-size: 400% 400%;
+  animation: gradientFlow 15s ease infinite;
+  margin: 0;
+  padding: 0;
+}
+
+/* Optional: animate gradient background */
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Main Container */
+.analysis-container {
+  padding: 40px 20px;
+  max-width: 900px;
+  margin: 60px auto;
+  background: rgba(255, 255, 255, 0.85); /* glass effect */
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #1f1f1f;
+}
+
+/* Headings */
+.analysis-container h2 {
+  text-align: center;
+  color: #2c3e50;
+  font-size: 30px;
+  margin-bottom: 30px;
+}
+
+.analysis-container h3 {
+  color: #2c3e50;
+  font-size: 22px;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 5px;
+}
+
+/* Toggle Button */
+.toggle-form-btn {
+  display: block;
+  margin: 0 auto 25px auto;
+  padding: 12px 22px;
+  background-color: #ff6b81;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.toggle-form-btn:hover {
+  background-color: #e5506e;
+}
+
+/* Feedback Form Styling */
+.analysis-form {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-form input[type="text"],
+.analysis-form input[type="date"],
+.analysis-form textarea {
+  width: 100%;
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid #b0bec5;
+  border-radius: 8px;
+  font-size: 15px;
+  box-sizing: border-box;
+  background-color: #fdfdfd;
+  color: #333;
+}
+
+.analysis-form label {
+  margin-top: 10px;
+  font-weight: 600;
+  color: #37474f;
+  display: block;
+}
+
+/* Multi-select */
+.multi-select {
+  margin: 12px 0;
+}
+
+.analysis-form textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Submit Button */
+.submit-btn {
+  background-color: #2980b9;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background-color 0.2s ease;
+}
+
+.submit-btn:hover {
+  background-color: #21618c;
+}
+
+/* Feedback Entries Section */
+.feedback-entries {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.08);
+}
+
+.feedback-entry {
+  background-color: #fef6e4;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 6px solid #ffa502;
+}
+
+.feedback-entry p {
+  margin: 6px 0;
+  color: #2c3e50;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.feedback-entry p strong {
+  color: #1a237e;
+}
+/* Analysis Page Navbar */
+.analysis-navbar {
+  background-color: #1976d2;
+  padding: 14px 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.analysis-navbar {
+  background-color: #1976d2;
+  padding: 14px 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.analysis-navbar-menu {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 200px; /* Increased from 40px to 80px */
+}
+
+.analysis-navbar-menu li a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.analysis-navbar-menu li a:hover,
+.analysis-navbar-menu li a.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
