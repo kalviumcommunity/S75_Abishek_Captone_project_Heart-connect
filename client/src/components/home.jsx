@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import socket from '../socket'; // Import the shared socket instance
+import socket from './socket'; // Import the shared socket instance
 import '../styles/home.css';
 
 const ChildHomePage = () => {
