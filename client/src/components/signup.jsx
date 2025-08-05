@@ -23,38 +23,39 @@ const SignupForm = () => {
       ...prevData,
       [name]: value,
     }));
-
-    // Save user role to localStorage as lowercase (child/parent)
-    if (name === "role") {
-      localStorage.setItem("userRole", value.toLowerCase());
-    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Clear any old session data
-    localStorage.clear();
+    const { name, age, phone, role, gender, password } = formData;
+    const roleLower = role.toLowerCase();
 
-    if (formData.role === "Children") {
-      // Store some data temporarily for children until randomId is generated
-      navigate("/children-page", { state: { ...formData } });
+    if (role === "Children") {
+      // Navigate to children landing page, pass data via state
+      navigate("/children-page", {
+        state: {
+          name,
+          age,
+          gender
+        }
+      });
     } else {
       try {
         const response = await axios.post(
           'https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/signup',
-          formData
+          { name, age, phone, role, gender, password }
         );
 
         alert('User registered successfully');
 
         // Save parent details in localStorage
-        localStorage.setItem("identity", formData.phone);
-        localStorage.setItem("userRole", "parent");
-        localStorage.setItem("name", formData.name);
-        localStorage.setItem("phone", formData.phone);
-        localStorage.setItem("gender", formData.gender);
-        localStorage.setItem("age", formData.age);
+        localStorage.setItem("identity", phone);
+        localStorage.setItem("userRole", roleLower);
+        localStorage.setItem("name", name);
+        localStorage.setItem("phone", phone);
+        localStorage.setItem("gender", gender);
+        localStorage.setItem("age", age);
 
         navigate("/home");
       } catch (error) {

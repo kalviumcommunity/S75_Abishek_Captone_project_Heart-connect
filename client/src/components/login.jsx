@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import "../styles/signup.css"; // reuse signup styles
+import "../styles/signup.css"; // Reusing signup styles
 
 const ParentLogin = () => {
   const [credentials, setCredentials] = useState({
@@ -14,13 +14,17 @@ const ParentLogin = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setCredentials((prev) => ({ ...prev, [name]: value }));
+    setCredentials((prev) => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
+      // 🔐 Login API
       const response = await axios.post(
         'https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/login',
         credentials
@@ -28,7 +32,7 @@ const ParentLogin = () => {
 
       const token = response.data.token;
 
-      // ✅ Fetch full profile using phone and token
+      // 👤 Fetch parent profile
       const profileRes = await axios.get(
         `https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/user/${credentials.phone}`,
         {
@@ -40,8 +44,8 @@ const ParentLogin = () => {
 
       const userData = profileRes.data.data;
 
-      // ✅ Save everything to localStorage
-      localStorage.setItem('identity', userData.phone); // for profile display
+      // 💾 Save to localStorage
+      localStorage.setItem('identity', userData.phone); // used in profile and home
       localStorage.setItem('userRole', 'parent');
       localStorage.setItem('name', userData.name || '-');
       localStorage.setItem('phone', userData.phone || '-');
@@ -50,11 +54,12 @@ const ParentLogin = () => {
 
       alert('Login successful!');
       navigate('/home');
+
     } catch (error) {
       if (error.response) {
         alert(`Login failed: ${error.response.data.message}`);
       } else {
-        alert('An error occurred. Please try again.');
+        alert('Network error. Please try again.');
       }
     }
   };
