@@ -3,21 +3,28 @@ const mongoose=require("mongoose")
 const childrenSchema = new mongoose.Schema({
     randomId: {
       type: String,
-      required: function () {
-        return this.role === 'Children'; 
-      },
+      required: true,
       unique: true,
     },
     childPassword: {
       type: String,
-      required: function () {
-        return this.role === 'Children'; 
-      },
+      required: true,
       minlength: 6,
     },
     name: { 
       type: String,
       required: true,
+    },
+    age: {
+      type: Number,
+      required: false,
+      min: 1,
+    },
+    gender: {
+      type: String,
+      required: false,
+      enum: ['Male', 'Female', 'Other', '-'],
+      default: '-',
     },
   }, {
     timestamps: true,

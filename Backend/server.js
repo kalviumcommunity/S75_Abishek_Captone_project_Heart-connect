@@ -12,29 +12,37 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 
 // === SOCKET.IO SETUP ===
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: CORS_ORIGIN,
     methods: ["GET", "POST"]
   }
 });
 
-// === MIDDLEWARE ===
-app.use(cors({ origin: "http://localhost:5173" }));
+// MIDDLEWARE 
+app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 
-// === ROUTES ===
+//  ROUTES 
 app.use("/parent", parentRoutes);
 app.use("/child", childRoutes);
 app.use("/analysis", analysisRoutes);
 
-// === MONGO CONNECTION ===
-const uri = process.env.uri;
+//MONGO CONNECTION 
+const uri = process.env.MONGODB_URI || process.env.uri;
+if (!uri) {
+  console.error("MongoDB URI not provided. Set MONGODB_URI in Backend/.env");
+  process.exit(1);
+}
 mongoose.connect(uri)
   .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log("MongoDB connection error:", err));
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
+  });
 
-// === SOCKET.IO EVENTS ===
+// SOCKET.IO EVENTS
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
@@ -51,7 +59,7 @@ io.on("connection", (socket) => {
 });
 
 // === START SERVER ===
-const PORT = 4001;
+const PORT = process.env.PORT || 4001;
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
