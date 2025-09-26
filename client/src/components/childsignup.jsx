@@ -45,7 +45,7 @@ const ChildrenPassword = () => {
   const handleSignup = async () => {
     try {
       // API call to child signup route
-      const response = await axios.post('https://s75-abishek-captone-project-heart-dinq.onrender.com/child/signup', {
+      const response = await axios.post('https://s75-abishek-captone-project-heart-maoz.onrender.com/child/signup', {
         name,
         randomId,
         childPassword: password

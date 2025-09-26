@@ -26,7 +26,7 @@ const ParentLogin = () => {
     try {
       // 🔐 Login API
       const response = await axios.post(
-        'https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/login',
+        'https://s75-abishek-captone-project-heart-maoz.onrender.com/parent/login',
         credentials
       );
 
@@ -34,7 +34,7 @@ const ParentLogin = () => {
 
       // 👤 Fetch parent profile
       const profileRes = await axios.get(
-        `https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/user/${credentials.phone}`,
+        `https://s75-abishek-captone-project-heart-maoz.onrender.com/parent/user/${credentials.phone}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
