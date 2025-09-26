@@ -21,7 +21,7 @@ const io = new Server(server, {
 });
 
 // MIDDLEWARE 
-app.use(cors({ origin: CORS_ORIGIN }));
+app.use(cors());
 app.use(express.json());
 
 //  ROUTES 
