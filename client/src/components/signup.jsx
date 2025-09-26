@@ -43,7 +43,7 @@ const SignupForm = () => {
     } else {
       try {
         const response = await axios.post(
-          'https://s75-abishek-captone-project-heart-dinq.onrender.com/parent/signup',
+          'https://s75-abishek-captone-project-heart-maoz.onrender.com/parent/signup',
           { name, age, phone, role, gender, password }
         );
 
