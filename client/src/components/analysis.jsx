@@ -48,8 +48,17 @@ const AnalysisPage = () => {
       setError('');
       try {
         const res = await analysisAPI.getAllFeedback();
-        setEntries(res.data || []);
+        console.log('API Response:', res.data); // Debug log
+        if (res.data?.success && res.data?.data) {
+          setEntries(res.data.data);
+        } else if (Array.isArray(res.data)) {
+          // Fallback for direct array response
+          setEntries(res.data);
+        } else {
+          setEntries([]);
+        }
       } catch (err) {
+        console.error('Error loading feedback:', err);
         setError(err?.response?.data?.message || 'Failed to load feedback');
       } finally {
         setLoading(false);
@@ -85,18 +94,28 @@ const AnalysisPage = () => {
         interviewDate: form.interviewDate,
         feedback: form.feedback,
       };
+      console.log('Submitting payload:', payload); // Debug log
       const res = await analysisAPI.createFeedback(payload);
-      const saved = res.data?.feedback || res.data; // backend responds { message, feedback }
-      if (saved) {
-        setEntries(prev => [saved, ...prev]);
+      console.log('Create response:', res.data); // Debug log
+      
+      if (res.data?.success && res.data?.data) {
+        setEntries(prev => [res.data.data, ...prev]);
+      } else if (res.data?.feedback) {
+        // Fallback for old response format
+        setEntries(prev => [res.data.feedback, ...prev]);
       } else {
         // Fallback: reload all
         const list = await analysisAPI.getAllFeedback();
-        setEntries(list.data || []);
+        if (list.data?.success && list.data?.data) {
+          setEntries(list.data.data);
+        } else if (Array.isArray(list.data)) {
+          setEntries(list.data);
+        }
       }
       setForm({ name: '', graduation: [], interviewDate: '', feedback: '' });
       setFormVisible(false);
     } catch (err) {
+      console.error('Error submitting feedback:', err);
       setError(err?.response?.data?.message || 'Failed to submit feedback');
     } finally {
       setLoading(false);
@@ -169,11 +188,31 @@ const AnalysisPage = () => {
         )}
         <div className="feedback-entries">
           <h3>Submitted Feedback</h3>
-          {error && <p className="error-text">{error}</p>}
-          {loading && !formVisible && <p>Loading...</p>}
-          {entries.length === 0 ? (
-            <p>No feedback submitted yet.</p>
-          ) : (
+          {error && (
+            <div className="error-message" style={{ 
+              background: '#ffebee', 
+              color: '#c62828', 
+              padding: '10px', 
+              borderRadius: '4px', 
+              margin: '10px 0',
+              border: '1px solid #ffcdd2'
+            }}>
+              <strong>Error:</strong> {error}
+              <br />
+              <small>Please check if the backend server is running on port 4001</small>
+            </div>
+          )}
+          {loading && !formVisible && (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <p>Loading feedback...</p>
+            </div>
+          )}
+          {!loading && entries.length === 0 && !error && (
+            <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+              No feedback submitted yet.
+            </p>
+          )}
+          {!loading && entries.length > 0 && (
             entries.map((entry, index) => (
               <div key={entry._id || index} className="feedback-entry">
                 <p><strong>Name:</strong> {entry.name}</p>

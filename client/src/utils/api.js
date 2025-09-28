@@ -28,8 +28,13 @@ api.interceptors.request.use(
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API Response:', response.config.url, response.status, response.data);
+    return response;
+  },
   (error) => {
+    console.error('API Error:', error.config?.url, error.response?.status, error.message);
+    
     if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('token');
@@ -37,6 +42,13 @@ api.interceptors.response.use(
       localStorage.removeItem('identity');
       window.location.href = '/';
     }
+    
+    // Network error handling
+    if (!error.response) {
+      console.error('Network error - server may be down');
+      error.message = 'Unable to connect to server. Please check if the backend is running.';
+    }
+    
     return Promise.reject(error);
   }
 );

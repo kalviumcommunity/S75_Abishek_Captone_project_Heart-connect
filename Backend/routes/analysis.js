@@ -9,15 +9,27 @@ router.post('/feedback', async (req, res) => {
     const { name, graduation, interviewDate, feedback } = req.body;
 
     if (!name || !graduation || !interviewDate || !feedback) {
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'All fields are required' 
+      });
     }
 
     const newFeedback = new Analysis({ name, graduation, interviewDate, feedback });
     await newFeedback.save();
 
-    res.status(201).json({ message: 'Feedback saved successfully', feedback: newFeedback });
+    res.status(201).json({ 
+      success: true,
+      message: 'Feedback saved successfully', 
+      data: newFeedback 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Error creating feedback:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 });
 
@@ -25,9 +37,18 @@ router.post('/feedback', async (req, res) => {
 router.get('/feedback', async (req, res) => {
   try {
     const allFeedback = await Analysis.find().sort({ createdAt: -1 });
-    res.status(200).json(allFeedback);
+    res.status(200).json({ 
+      success: true, 
+      data: allFeedback,
+      message: 'Feedback retrieved successfully' 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to retrieve feedback', error: error.message });
+    console.error('Error fetching feedback:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to retrieve feedback', 
+      error: error.message 
+    });
   }
 });
 
