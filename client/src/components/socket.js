@@ -1,6 +1,6 @@
 // socket.js
-import { io } from "socket.io-client";
+  // Reuse the centralized socket configured with environment variables
+  // This avoids hardcoding localhost and works for both dev and production
+  import socket from "../utils/socket";
 
-const socket = io("http://localhost:4001"); // Backend server address
-
-export default socket;
+  export default socket;

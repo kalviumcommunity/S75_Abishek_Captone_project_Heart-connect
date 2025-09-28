@@ -25,21 +25,21 @@ const ProfilePage = () => {
 
     if (role === "child") {
       setUserDetails({
-        name: localStorage.getItem("name") || "Anonymous",
+        name: localStorage.getItem("name") ,
         role: "Children",
         identity,
-        gender: localStorage.getItem("gender") || "-",
+        gender: localStorage.getItem("gender") ,
         phone: "-",
-        age: localStorage.getItem("age") || "-"
+        age: localStorage.getItem("age")
       });
     } else {
       setUserDetails({
-        name: localStorage.getItem("name") || "-",
+        name: localStorage.getItem("name"),
         role: "Parent",
         identity: localStorage.getItem("phone") || identity,
-        gender: localStorage.getItem("gender") || "-",
-        phone: localStorage.getItem("phone") || "-",
-        age: localStorage.getItem("age") || "-"
+        gender: localStorage.getItem("gender") ,
+        phone: localStorage.getItem("phone") ,
+        age: localStorage.getItem("age")
       });
     }
   }, [navigate]);
