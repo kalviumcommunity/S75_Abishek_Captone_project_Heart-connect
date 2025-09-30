@@ -3,29 +3,44 @@ import { Link } from 'react-router-dom';
 import socket from '../utils/socket';
 import { feelingsAPI } from '../utils/api';
 import '../styles/home.css';
+import FeelingComponent from './FeelingComponent';
 
 const ChildHomePage = () => {
   const [userInfo, setUserInfo] = useState({ identity: '', role: '', userId: '' });
   const [feelingText, setFeelingText] = useState('');
   const [postedFeelings, setPostedFeelings] = useState([]);
-  const [activeCommentIndex, setActiveCommentIndex] = useState(null);
+  const [commentBoxes, setCommentBoxes] = useState([]);
   const [commentInputs, setCommentInputs] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // Set user info from localStorage
+  // Set user info from sessionStorage to maintain separate logins in different tabs
   useEffect(() => {
-    const storedRole = localStorage.getItem('userRole') || 'guest';
-    let identity = 'Anonymous';
-    let userId = '';
-
-    if (storedRole === 'child') {
-      identity = localStorage.getItem('identity') || 'UnknownID';
-      userId = localStorage.getItem('identity') || 'UnknownID';
-    } else if (storedRole === 'parent') {
-      identity = localStorage.getItem('name') || 'Parent';
-      userId = localStorage.getItem('phone') || 'Parent';
+    // First try to get from sessionStorage (tab-specific)
+    let storedRole = sessionStorage.getItem('userRole');
+    let identity = sessionStorage.getItem('identity');
+    let userId = sessionStorage.getItem('userId');
+    
+    // If not found in sessionStorage, try localStorage and save to sessionStorage
+    if (!storedRole || !identity) {
+      storedRole = localStorage.getItem('userRole') || 'guest';
+      
+      if (storedRole === 'child') {
+        identity = localStorage.getItem('identity') || 'UnknownID';
+        userId = localStorage.getItem('identity') || 'UnknownID';
+      } else if (storedRole === 'parent') {
+        identity = localStorage.getItem('name') || 'Parent';
+        userId = localStorage.getItem('phone') || 'Parent';
+      } else {
+        identity = 'Anonymous';
+        userId = '';
+      }
+      
+      // Save to sessionStorage for this tab
+      sessionStorage.setItem('userRole', storedRole);
+      sessionStorage.setItem('identity', identity);
+      sessionStorage.setItem('userId', userId);
     }
 
     setUserInfo({ identity, role: storedRole, userId });
@@ -157,8 +172,31 @@ const ChildHomePage = () => {
 
   const toggleHeart = async (feelingId) => {
     try {
+      setError('');
       const feeling = postedFeelings.find(f => f._id === feelingId);
       if (!feeling) return;
+      
+      // Check if the user is the author of the feeling
+      if (feeling.author === userInfo.identity) {
+        setError("You cannot like your own post");
+        return;
+      }
+
+      // Optimistically update UI for better user experience
+      const currentLikeStatus = isLikedByUser(feeling);
+      const newLikesCount = currentLikeStatus ? (feeling.likesCount - 1) : ((feeling.likesCount || 0) + 1);
+      
+      setPostedFeelings(prev =>
+        prev.map(f =>
+          f._id === feelingId
+            ? {
+                ...f,
+                isLikedByUser: !currentLikeStatus,
+                likesCount: newLikesCount
+              }
+            : f
+        )
+      );
 
       // Emit to server via socket for real-time updates
       socket.emit('toggleLike', {
@@ -175,12 +213,43 @@ const ChildHomePage = () => {
     } catch (err) {
       console.error('Error toggling like:', err);
       setError('Failed to update like');
+      
+      // Revert optimistic update if there's an error
+      const feeling = postedFeelings.find(f => f._id === feelingId);
+      if (feeling) {
+        const response = await feelingsAPI.getFeeling(feelingId);
+        if (response.data?.success) {
+          setPostedFeelings(prev =>
+            prev.map(f =>
+              f._id === feelingId ? response.data.data : f
+            )
+          );
+        }
+      }
     }
   };
 
   const toggleCommentBox = (index) => {
+    // Check if the user is the author of the feeling
+    const feeling = postedFeelings[index];
+    if (feeling && feeling.author === userInfo.identity) {
+      setError("You cannot comment on your own post");
+      return;
+    }
+    
     setActiveCommentIndex(prev => (prev === index ? null : index));
   };
+  
+  // Function to view comments on your own post
+  const viewOwnPostComments = (index) => {
+    setCommentBoxes(prev => {
+      const newCommentBoxes = [...prev];
+      newCommentBoxes[index] = !newCommentBoxes[index];
+      return newCommentBoxes;
+    });
+  };
+  
+  // This section was removed to fix duplicate declaration
 
   const handleCommentChange = (index, text) => {
     setCommentInputs({ ...commentInputs, [index]: text });
@@ -189,8 +258,18 @@ const ChildHomePage = () => {
   const handleAddComment = async (feelingId, index) => {
     const commentText = commentInputs[index]?.trim();
     if (!commentText) return;
+    
+    // Double-check that user is not commenting on their own post
+    const feeling = postedFeelings.find(f => f._id === feelingId);
+    if (feeling && feeling.author === userInfo.identity) {
+      setError("You cannot comment on your own post");
+      return;
+    }
 
     try {
+      setLoading(true);
+      setError('');
+      
       const commentData = {
         text: commentText,
         author: userInfo.identity,
@@ -206,20 +285,52 @@ const ChildHomePage = () => {
       // Also save to database via API
       await feelingsAPI.addComment(feelingId, commentData);
 
+      // Clear input and close comment box
       setCommentInputs({ ...commentInputs, [index]: '' });
-      setActiveCommentIndex(null);
+      
+      // Keep comment box open to show the new comment immediately
+      // Only close if there's an error
     } catch (err) {
       console.error('Error adding comment:', err);
       setError('Failed to add comment');
+      setActiveCommentIndex(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   const getAuthorLabel = (feeling) => feeling.author;
   const isLikedByUser = (feeling) => {
+    // Check if the feeling has the isLikedByUser property set by the socket update
+    if (feeling.isLikedByUser !== undefined) {
+      return feeling.isLikedByUser;
+    }
+    
+    // Otherwise check the likes array
     if (feeling.likes && Array.isArray(feeling.likes)) {
       return feeling.likes.some(like => like.userId === userInfo.userId);
     }
     return false;
+  };
+  
+  // Function to show who liked a post
+  const showLikes = async (feelingId) => {
+    try {
+      setLoading(true);
+      const response = await feelingsAPI.getFeeling(feelingId);
+      if (response.data?.success) {
+        const feeling = response.data.data;
+        if (feeling.likes && Array.isArray(feeling.likes)) {
+          setCurrentLikes(feeling.likes);
+          setShowLikesModal(true);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching likes:', err);
+      setError('Failed to fetch likes');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -270,112 +381,35 @@ const ChildHomePage = () => {
         )}
 
         {/* Feelings Feed */}
-        <div className="posted-feelings">
-          {postedFeelings.length === 0 && !loading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+        <div className="posted-feelings" style={{ marginTop: '20px', padding: '10px' }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <p>Loading feelings...</p>
+            </div>
+          ) : postedFeelings && postedFeelings.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
               <h3>No feelings posted yet</h3>
               <p>Be the first to share your feelings!</p>
             </div>
           ) : (
-            postedFeelings.map((feeling, index) => (
-              <div key={feeling._id || feeling.timestamp} className="posted-feeling">
-                <div className="feeling-header">
-                  <h3>{getAuthorLabel(feeling)}</h3>
-                  <span className="feeling-role">({feeling.authorRole})</span>
-                  <span className="feeling-time">
-                    {new Date(feeling.timestamp).toLocaleString()}
-                  </span>
-                </div>
-                <p className="feeling-text">{feeling.text}</p>
-                
-                <div className="interaction-buttons">
-                  <button
-                    className={`heart-btn ${isLikedByUser(feeling) ? 'liked' : ''}`}
-                    onClick={() => toggleHeart(feeling._id)}
-                  >
-                    {isLikedByUser(feeling) ? '❤️' : '🤍'} Like ({feeling.likesCount || 0})
-                  </button>
-                  <button 
-                    className="comment-btn" 
-                    onClick={() => toggleCommentBox(index)}
-                  >
-                    💬 Comment ({feeling.comments?.length || 0})
-                  </button>
-                  <button className="share-btn">🔗 Share</button>
-                  <button className="friend-btn">👫 Request Friend</button>
-                </div>
-
-                {/* Comments Section */}
-                {activeCommentIndex === index && (
-                  <div className="comment-section">
-                    <div className="comment-input">
-                      <textarea
-                        placeholder="Write your comment..."
-                        value={commentInputs[index] || ''}
-                        onChange={(e) => handleCommentChange(index, e.target.value)}
-                        style={{ 
-                          width: '100%', 
-                          height: '60px', 
-                          marginTop: '10px',
-                          padding: '8px',
-                          borderRadius: '4px',
-                          border: '1px solid #ddd',
-                          resize: 'vertical'
-                        }}
-                      />
-                      <div style={{ marginTop: '8px' }}>
-                        <button 
-                          onClick={() => handleAddComment(feeling._id, index)}
-                          style={{
-                            background: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            marginRight: '8px'
-                          }}
-                        >
-                          Post Comment
-                        </button>
-                        <button 
-                          onClick={() => setActiveCommentIndex(null)}
-                          style={{
-                            background: '#6c757d',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Existing Comments */}
-                    {feeling.comments && feeling.comments.length > 0 && (
-                      <div className="comments-list">
-                        <h4>Comments ({feeling.comments.length}):</h4>
-                        {feeling.comments.map((comment, cIndex) => (
-                          <div key={comment.timestamp + cIndex} className="comment">
-                            <div className="comment-header">
-                              <strong>{comment.author}</strong>
-                              <span className="comment-role">({comment.authorRole})</span>
-                              <span className="comment-time">
-                                {new Date(comment.timestamp).toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="comment-text">{comment.text}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {postedFeelings && postedFeelings.map((feeling, index) => (
+                <FeelingComponent
+                  key={feeling._id || index}
+                  feeling={feeling}
+                  index={index}
+                  userInfo={userInfo}
+                  toggleHeart={toggleHeart}
+                  isLikedByUser={isLikedByUser}
+                  commentBoxes={commentBoxes}
+                  toggleCommentBox={toggleCommentBox}
+                  viewOwnPostComments={viewOwnPostComments}
+                  commentInputs={commentInputs}
+                  handleCommentChange={handleCommentChange}
+                  handleAddComment={handleAddComment}
+                />
+              ))}
+            </div>
           )}
         </div>
 
@@ -415,6 +449,8 @@ const ChildHomePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Likes Modal moved to FeelingComponent.jsx */}
     </div>
   );
 };
