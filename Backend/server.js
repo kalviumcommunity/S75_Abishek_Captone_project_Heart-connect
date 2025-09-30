@@ -6,6 +6,7 @@ require("dotenv").config();
 const parentRoutes = require("./routes/parent");
 const childRoutes = require("./routes/child");
 const analysisRoutes = require("./routes/analysis");
+const feelingsRoutes = require("./routes/feelings");
 
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use("/parent", parentRoutes);
 app.use("/child", childRoutes);
 app.use("/analysis", analysisRoutes);
+app.use("/feelings", feelingsRoutes);
 
 //MONGO CONNECTION 
 const uri = process.env.MONGODB_URI || process.env.uri;
@@ -42,15 +44,115 @@ mongoose.connect(uri)
     process.exit(1);
   });
 
+// Import Feeling model for socket operations
+const Feeling = require("./models/Feeling");
+
 // SOCKET.IO EVENTS
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   // When a new feeling is posted from frontend
-  socket.on("newFeeling", (data) => {
-    console.log("New Feeling Received:", data);
-    // Broadcast it to all other users
-    socket.broadcast.emit("receiveFeeling", data);
+  socket.on("newFeeling", async (data) => {
+    try {
+      console.log("New Feeling Received:", data);
+      
+      // Save to database
+      const newFeeling = new Feeling({
+        text: data.text,
+        author: data.author,
+        authorRole: data.authorRole,
+        likes: [],
+        comments: []
+      });
+      
+      await newFeeling.save();
+      
+      // Broadcast to all users including sender
+      io.emit("receiveFeeling", {
+        ...newFeeling.toObject(),
+        likesCount: newFeeling.likesCount
+      });
+      
+      console.log("Feeling saved and broadcasted");
+    } catch (error) {
+      console.error("Error saving feeling:", error);
+      socket.emit("error", { message: "Failed to save feeling" });
+    }
+  });
+
+  // Handle like toggle
+  socket.on("toggleLike", async (data) => {
+    try {
+      const { feelingId, userId, userRole } = data;
+      
+      const feeling = await Feeling.findById(feelingId);
+      if (!feeling) {
+        socket.emit("error", { message: "Feeling not found" });
+        return;
+      }
+
+      const wasLiked = feeling.toggleLike(userId, userRole);
+      await feeling.save();
+
+      // Broadcast like update to all users
+      io.emit("likeUpdated", {
+        feelingId,
+        wasLiked,
+        likesCount: feeling.likesCount,
+        userId
+      });
+      
+      console.log(`Like toggled for feeling ${feelingId}: ${wasLiked ? 'liked' : 'unliked'}`);
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      socket.emit("error", { message: "Failed to toggle like" });
+    }
+  });
+
+  // Handle new comment
+  socket.on("newComment", async (data) => {
+    try {
+      const { feelingId, text, author, authorRole } = data;
+      
+      const feeling = await Feeling.findById(feelingId);
+      if (!feeling) {
+        socket.emit("error", { message: "Feeling not found" });
+        return;
+      }
+
+      const newComment = {
+        text,
+        author,
+        authorRole,
+        timestamp: new Date()
+      };
+
+      feeling.comments.push(newComment);
+      await feeling.save();
+
+      // Broadcast comment to all users
+      io.emit("commentAdded", {
+        feelingId,
+        comment: newComment
+      });
+      
+      console.log(`Comment added to feeling ${feelingId} by ${author}`);
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      socket.emit("error", { message: "Failed to add comment" });
+    }
+  });
+
+  // Handle user joining a room (for future features)
+  socket.on("joinRoom", (room) => {
+    socket.join(room);
+    console.log(`User ${socket.id} joined room: ${room}`);
+  });
+
+  // Handle user leaving a room
+  socket.on("leaveRoom", (room) => {
+    socket.leave(room);
+    console.log(`User ${socket.id} left room: ${room}`);
   });
 
   socket.on("disconnect", () => {

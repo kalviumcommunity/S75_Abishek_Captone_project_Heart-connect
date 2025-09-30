@@ -76,4 +76,18 @@ export const analysisAPI = {
   deleteFeedback: (id) => api.delete(`/analysis/feedback/${id}`),
 };
 
+export const feelingsAPI = {
+  // Backend routes are defined in Backend/routes/feelings.js
+  // GET /feelings -> get all feelings
+  // POST /feelings -> create new feeling
+  // POST /feelings/:id/like -> toggle like
+  // POST /feelings/:id/comment -> add comment
+  // GET /feelings/:id -> get specific feeling
+  getAllFeelings: () => api.get('/feelings'),
+  createFeeling: (data) => api.post('/feelings', data),
+  toggleLike: (id, data) => api.post(`/feelings/${id}/like`, data),
+  addComment: (id, data) => api.post(`/feelings/${id}/comment`, data),
+  getFeeling: (id) => api.get(`/feelings/${id}`),
+};
+
 export default api;
