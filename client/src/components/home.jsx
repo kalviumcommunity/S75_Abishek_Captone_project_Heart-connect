@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import socket from '../utils/socket';
 import { feelingsAPI } from '../utils/api';
@@ -6,7 +6,23 @@ import '../styles/home.css';
 import FeelingComponent from './FeelingComponent';
 
 const ChildHomePage = () => {
-  const [userInfo, setUserInfo] = useState({ identity: '', role: '', userId: '' });
+  const [userInfo, setUserInfo] = useState(() => {
+    const identity = localStorage.getItem('identity') || '';
+    const role = localStorage.getItem('userRole') || '';
+    let userId = localStorage.getItem('userId') || '';
+    
+    // If userId is missing but identity exists, use identity as userId
+    if (!userId && identity) {
+      userId = identity;
+      localStorage.setItem('userId', userId);
+    }
+    
+    return { 
+      identity, 
+      role, 
+      userId 
+    };
+  });
   const [feelingText, setFeelingText] = useState('');
   const [postedFeelings, setPostedFeelings] = useState([]);
   const [commentBoxes, setCommentBoxes] = useState([]);
@@ -14,37 +30,75 @@ const ChildHomePage = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeCommentIndex, setActiveCommentIndex] = useState(null);
+  const [currentLikes, setCurrentLikes] = useState([]);
+  const [showLikesModal, setShowLikesModal] = useState(false);
 
-  // Set user info from sessionStorage to maintain separate logins in different tabs
-  useEffect(() => {
-    // First try to get from sessionStorage (tab-specific)
-    let storedRole = sessionStorage.getItem('userRole');
-    let identity = sessionStorage.getItem('identity');
-    let userId = sessionStorage.getItem('userId');
+  // Ensure all feelings in state are unique
+  const ensureUniqueFeelings = (feelings) => {
+    const uniqueFeelings = [];
+    const seenIds = new Set();
     
-    // If not found in sessionStorage, try localStorage and save to sessionStorage
-    if (!storedRole || !identity) {
-      storedRole = localStorage.getItem('userRole') || 'guest';
+    for (const feeling of feelings) {
+      if (!seenIds.has(feeling._id)) {
+        seenIds.add(feeling._id);
+        uniqueFeelings.push(feeling);
+      }
+    }
+    
+    return uniqueFeelings;
+  };
+
+  // Effect to periodically clean up duplicates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPostedFeelings(prev => {
+        const cleaned = ensureUniqueFeelings(prev);
+        // Only update if there were actually duplicates
+        if (cleaned.length !== prev.length) {
+          console.log('Cleaned up duplicate feelings');
+          return cleaned;
+        }
+        return prev;
+      });
+    }, 5000); // Check every 5 seconds instead of 1
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Custom hook to ensure unique feelings
+  const addUniqueFeeling = (newFeeling) => {
+    setPostedFeelings(prev => {
+      // Create a new array with unique feelings only
+      const allFeelings = [newFeeling, ...prev];
+      const uniqueFeelings = [];
+      const seenIds = new Set();
       
-      if (storedRole === 'child') {
-        identity = localStorage.getItem('identity') || 'UnknownID';
-        userId = localStorage.getItem('identity') || 'UnknownID';
-      } else if (storedRole === 'parent') {
-        identity = localStorage.getItem('name') || 'Parent';
-        userId = localStorage.getItem('phone') || 'Parent';
-      } else {
-        identity = 'Anonymous';
-        userId = '';
+      for (const feeling of allFeelings) {
+        if (!seenIds.has(feeling._id)) {
+          seenIds.add(feeling._id);
+          uniqueFeelings.push(feeling);
+        }
       }
       
-      // Save to sessionStorage for this tab
-      sessionStorage.setItem('userRole', storedRole);
-      sessionStorage.setItem('identity', identity);
-      sessionStorage.setItem('userId', userId);
-    }
+      return uniqueFeelings;
+    });
+  };
 
-    setUserInfo({ identity, role: storedRole, userId });
-  }, []);
+  // Custom hook to set feelings ensuring uniqueness
+  const setUniqueFeelings = (newFeelings) => {
+    const uniqueFeelings = [];
+    const seenIds = new Set();
+    
+    for (const feeling of newFeelings) {
+      if (!seenIds.has(feeling._id)) {
+        seenIds.add(feeling._id);
+        uniqueFeelings.push(feeling);
+      }
+    }
+    
+    setPostedFeelings(uniqueFeelings);
+  };
 
   // Load existing feelings on mount
   useEffect(() => {
@@ -53,7 +107,9 @@ const ChildHomePage = () => {
         setLoading(true);
         const response = await feelingsAPI.getAllFeelings();
         if (response.data?.success && response.data?.data) {
-          setPostedFeelings(response.data.data);
+          console.log('Loaded feelings from API:', response.data.data);
+          // Set initial feelings
+          setUniqueFeelings(response.data.data);
         }
       } catch (err) {
         console.error('Error loading feelings:', err);
@@ -68,32 +124,35 @@ const ChildHomePage = () => {
 
   // Socket event listeners
   useEffect(() => {
-    // Connection status listeners
-    socket.on('connect', () => {
+    // Define named handler functions
+    const handleConnect = () => {
       console.log('✅ Connected to server');
       setIsConnected(true);
-    });
+    };
 
-    socket.on('disconnect', () => {
+    const handleDisconnect = () => {
       console.log('❌ Disconnected from server');
       setIsConnected(false);
-    });
+    };
 
-    // Listen for new feelings from other users
-    socket.on('receiveFeeling', (feeling) => {
-      console.log('Received new feeling:', feeling);
-      setPostedFeelings((prev) => {
-        // Check if feeling already exists to avoid duplicates
-        const exists = prev.some(f => f._id === feeling._id);
-        if (!exists) {
-          return [feeling, ...prev];
-        }
-        return prev;
-      });
-    });
+    const handleReceiveFeeling = (feeling) => {
+      console.log('Received new feeling via socket:', feeling);
+      
+      // Check if this feeling is from the current user to prevent duplication
+      const isCurrentUserFeeling = feeling.author === userInfo.identity && 
+                                  feeling.authorRole === userInfo.role;
+      
+      // If it's from current user, we already added it optimistically, so skip
+      if (isCurrentUserFeeling) {
+        console.log('Skipping duplicate feeling from current user');
+        return;
+      }
+      
+      // Use our custom function to ensure uniqueness
+      addUniqueFeeling(feeling);
+    };
 
-    // Listen for like updates
-    socket.on('likeUpdated', (data) => {
+    const handleLikeUpdated = (data) => {
       console.log('Like updated:', data);
       setPostedFeelings(prev =>
         prev.map(feeling =>
@@ -106,11 +165,21 @@ const ChildHomePage = () => {
             : feeling
         )
       );
-    });
+    };
 
-    // Listen for new comments
-    socket.on('commentAdded', (data) => {
+    const handleCommentAdded = (data) => {
       console.log('Comment added:', data);
+      
+      // Check if this comment is from the current user to prevent duplication
+      const isCurrentUserComment = data.comment.author === userInfo.identity && 
+                                  data.comment.authorRole === userInfo.role;
+      
+      // If it's from current user, we already added it optimistically, so skip
+      if (isCurrentUserComment) {
+        console.log('Skipping duplicate comment from current user');
+        return;
+      }
+      
       setPostedFeelings(prev =>
         prev.map(feeling =>
           feeling._id === data.feelingId
@@ -121,26 +190,46 @@ const ChildHomePage = () => {
             : feeling
         )
       );
-    });
+    };
 
-    // Listen for errors
-    socket.on('error', (error) => {
+    const handleError = (error) => {
       console.error('Socket error:', error);
       setError(error.message);
-    });
-
-    return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('receiveFeeling');
-      socket.off('likeUpdated');
-      socket.off('commentAdded');
-      socket.off('error');
     };
-  }, [userInfo.userId]);
+
+    // Attach listeners
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('receiveFeeling', handleReceiveFeeling);
+    socket.on('likeUpdated', handleLikeUpdated);
+    socket.on('commentAdded', handleCommentAdded);
+    socket.on('error', handleError);
+
+    // Cleanup function - properly remove specific listeners
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('receiveFeeling', handleReceiveFeeling);
+      socket.off('likeUpdated', handleLikeUpdated);
+      socket.off('commentAdded', handleCommentAdded);
+      socket.off('error', handleError);
+    };
+  }, [userInfo.userId, userInfo.identity, userInfo.role]);
 
   const handlePostFeeling = async () => {
     if (!feelingText.trim()) return;
+
+    // Validate user info
+    if (!userInfo.identity || !userInfo.role || !userInfo.userId) {
+      const missingFields = [];
+      if (!userInfo.identity) missingFields.push('identity');
+      if (!userInfo.role) missingFields.push('role');
+      if (!userInfo.userId) missingFields.push('userId');
+      
+      setError(`User information incomplete. Missing: ${missingFields.join(', ')}. Please log in again.`);
+      console.error('User info validation failed:', { userInfo, missingFields });
+      return;
+    }
 
     try {
       setLoading(true);
@@ -152,25 +241,69 @@ const ChildHomePage = () => {
         authorRole: userInfo.role
       };
 
-      // Emit to server via socket for real-time broadcasting
-      socket.emit('newFeeling', feelingData);
-
-      // Also save to database via API
-      const response = await feelingsAPI.createFeeling(feelingData);
+      // Optimistically add feeling to UI immediately for better UX
+      const newFeeling = {
+        _id: 'temp-' + Date.now(), // Temporary ID
+        text: feelingText,
+        author: userInfo.identity,
+        authorRole: userInfo.role,
+        likes: [],
+        comments: [],
+        createdAt: new Date().toISOString(),
+        likesCount: 0
+      };
       
-      if (response.data?.success) {
-        setFeelingText('');
-        console.log('Feeling posted successfully');
+      // Add to the beginning of the list
+      setPostedFeelings(prev => [newFeeling, ...prev]);
+
+      // Emit to server via socket for real-time broadcasting
+      // The server will save to database and broadcast to all clients
+      socket.emit('newFeeling', feelingData);
+      
+      // Also send via API as a backup in case socket fails
+      try {
+        const response = await feelingsAPI.createFeeling(feelingData);
+        if (response.data?.success) {
+          console.log('Feeling posted successfully via API');
+          // Update the temporary feeling with the real ID from server
+          const realFeeling = response.data.data;
+          setPostedFeelings(prev => 
+            prev.map(f => 
+              f._id === newFeeling._id ? { ...realFeeling, likesCount: 0 } : f
+            )
+          );
+        }
+      } catch (apiErr) {
+        console.error('API fallback failed:', apiErr);
+        // Remove the optimistic feeling if API fails
+        setPostedFeelings(prev => prev.filter(f => f._id !== newFeeling._id));
+        throw apiErr; // Re-throw to be caught by the outer catch
       }
+      
+      // Clear the input field
+      setFeelingText('');
+      console.log('Feeling posted successfully');
     } catch (err) {
       console.error('Error posting feeling:', err);
-      setError('Failed to post feeling');
+      setError('Failed to post feeling: ' + (err.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
   };
 
   const toggleHeart = async (feelingId) => {
+    // Validate user info
+    if (!userInfo.identity || !userInfo.role || !userInfo.userId) {
+      const missingFields = [];
+      if (!userInfo.identity) missingFields.push('identity');
+      if (!userInfo.role) missingFields.push('role');
+      if (!userInfo.userId) missingFields.push('userId');
+      
+      setError(`User information incomplete. Missing: ${missingFields.join(', ')}. Please log in again.`);
+      console.error('User info validation failed:', { userInfo, missingFields });
+      return;
+    }
+
     try {
       setError('');
       const feeling = postedFeelings.find(f => f._id === feelingId);
@@ -199,24 +332,34 @@ const ChildHomePage = () => {
       );
 
       // Emit to server via socket for real-time updates
-      socket.emit('toggleLike', {
+      const likeData = {
         feelingId,
         userId: userInfo.userId,
         userRole: userInfo.role
-      });
+      };
+      
+      socket.emit('toggleLike', likeData);
+      
+      // Also send via API as a backup
+      try {
+        const response = await feelingsAPI.toggleLike(feelingId, {
+          userId: userInfo.userId,
+          userRole: userInfo.role
+        });
+        if (response.data?.success) {
+          console.log('Like toggled successfully via API');
+        }
+      } catch (apiErr) {
+        console.error('API fallback failed:', apiErr);
+        // Continue since socket might still work
+      }
 
-      // Also update via API
-      await feelingsAPI.toggleLike(feelingId, {
-        userId: userInfo.userId,
-        userRole: userInfo.role
-      });
     } catch (err) {
       console.error('Error toggling like:', err);
-      setError('Failed to update like');
+      setError('Failed to update like: ' + (err.message || 'Unknown error'));
       
       // Revert optimistic update if there's an error
-      const feeling = postedFeelings.find(f => f._id === feelingId);
-      if (feeling) {
+      try {
         const response = await feelingsAPI.getFeeling(feelingId);
         if (response.data?.success) {
           setPostedFeelings(prev =>
@@ -225,6 +368,8 @@ const ChildHomePage = () => {
             )
           );
         }
+      } catch (revertErr) {
+        console.error('Failed to revert optimistic update:', revertErr);
       }
     }
   };
@@ -249,14 +394,24 @@ const ChildHomePage = () => {
     });
   };
   
-  // This section was removed to fix duplicate declaration
-
-  const handleCommentChange = (index, text) => {
-    setCommentInputs({ ...commentInputs, [index]: text });
+  const handleCommentChange = (feelingId, text) => {
+    setCommentInputs({ ...commentInputs, [feelingId]: text });
   };
 
   const handleAddComment = async (feelingId, index) => {
-    const commentText = commentInputs[index]?.trim();
+    // Validate user info
+    if (!userInfo.identity || !userInfo.role || !userInfo.userId) {
+      const missingFields = [];
+      if (!userInfo.identity) missingFields.push('identity');
+      if (!userInfo.role) missingFields.push('role');
+      if (!userInfo.userId) missingFields.push('userId');
+      
+      setError(`User information incomplete. Missing: ${missingFields.join(', ')}. Please log in again.`);
+      console.error('User info validation failed:', { userInfo, missingFields });
+      return;
+    }
+
+    const commentText = commentInputs[feelingId]?.trim();
     if (!commentText) return;
     
     // Double-check that user is not commenting on their own post
@@ -276,23 +431,61 @@ const ChildHomePage = () => {
         authorRole: userInfo.role
       };
 
+      // Optimistically add comment to UI immediately for better UX
+      const newComment = {
+        text: commentText,
+        author: userInfo.identity,
+        authorRole: userInfo.role,
+        timestamp: new Date().toISOString()
+      };
+      
+      setPostedFeelings(prev =>
+        prev.map(f =>
+          f._id === feelingId
+            ? {
+                ...f,
+                comments: [...(f.comments || []), newComment]
+              }
+            : f
+        )
+      );
+
       // Emit to server via socket for real-time broadcasting
       socket.emit('newComment', {
         feelingId,
         ...commentData
       });
-
-      // Also save to database via API
-      await feelingsAPI.addComment(feelingId, commentData);
-
-      // Clear input and close comment box
-      setCommentInputs({ ...commentInputs, [index]: '' });
       
-      // Keep comment box open to show the new comment immediately
-      // Only close if there's an error
+      // Also send via API as a backup
+      try {
+        const response = await feelingsAPI.addComment(feelingId, commentData);
+        if (response.data?.success) {
+          console.log('Comment added successfully via API');
+        }
+      } catch (apiErr) {
+        console.error('API fallback failed:', apiErr);
+        // Remove the optimistic comment if API fails
+        setPostedFeelings(prev =>
+          prev.map(f =>
+            f._id === feelingId
+              ? {
+                  ...f,
+                  comments: f.comments.filter(c => 
+                    !(c.text === commentText && c.author === userInfo.identity)
+                  )
+                }
+              : f
+          )
+        );
+        throw apiErr; // Re-throw to be caught by the outer catch
+      }
+
+      // Clear input and keep comment box open
+      setCommentInputs({ ...commentInputs, [feelingId]: '' });
+      
     } catch (err) {
       console.error('Error adding comment:', err);
-      setError('Failed to add comment');
+      setError('Failed to add comment: ' + (err.message || 'Unknown error'));
       setActiveCommentIndex(null);
     } finally {
       setLoading(false);
@@ -450,7 +643,92 @@ const ChildHomePage = () => {
         </div>
       </div>
 
-      {/* Likes Modal moved to FeelingComponent.jsx */}
+      {/* Likes Modal */}
+      {showLikesModal && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-content" style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            maxWidth: '400px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <div className="modal-header" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '15px'
+            }}>
+              <h3 style={{ margin: 0 }}>People who liked this post</h3>
+              <button 
+                onClick={() => setShowLikesModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="likes-list">
+              {currentLikes.length === 0 ? (
+                <p>No likes yet</p>
+              ) : (
+                <ul style={{ 
+                  listStyle: 'none', 
+                  padding: 0,
+                  margin: 0
+                }}>
+                  {currentLikes.map((like, index) => (
+                    <li key={index} style={{
+                      padding: '10px',
+                      borderBottom: index < currentLikes.length - 1 ? '1px solid #eee' : 'none',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ marginRight: '10px', fontSize: '20px' }}>❤️</div>
+                      <div>
+                        <div style={{ fontWeight: 'bold' }}>{like.userId}</div>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#666',
+                          backgroundColor: like.userRole === 'child' ? '#3498db' : '#e74c3c',
+                          color: 'white',
+                          padding: '2px 6px',
+                          borderRadius: '10px',
+                          display: 'inline-block',
+                          marginTop: '3px'
+                        }}>
+                          {like.userRole}
+                        </div>
+                      </div>
+                      <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#999' }}>
+                        {new Date(like.timestamp).toLocaleString()}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -13,16 +13,34 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 
 // === SOCKET.IO SETUP ===
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+let CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+// Support multiple origins for development
+if (process.env.NODE_ENV === 'development') {
+  CORS_ORIGIN = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://localhost:4001"
+  ];
+}
 const io = new Server(server, {
   cors: {
     origin: CORS_ORIGIN,
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
 });
 
 // MIDDLEWARE 
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'development' ? [
+    "http://localhost:5173",
+    "http://localhost:5174", 
+    "http://localhost:3000",
+    "http://localhost:4001"
+  ] : [process.env.CORS_ORIGIN || "http://localhost:5173"]
+}));
 app.use(express.json());
 
 //  ROUTES 
@@ -68,9 +86,10 @@ io.on("connection", (socket) => {
       await newFeeling.save();
       
       // Broadcast to all users including sender
+      const feelingObj = newFeeling.toObject();
       io.emit("receiveFeeling", {
-        ...newFeeling.toObject(),
-        likesCount: newFeeling.likesCount
+        ...feelingObj,
+        likesCount: feelingObj.likes ? feelingObj.likes.length : 0
       });
       
       console.log("Feeling saved and broadcasted");

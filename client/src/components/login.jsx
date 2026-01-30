@@ -46,6 +46,7 @@ const ParentLogin = () => {
 
       // 💾 Save to localStorage
       localStorage.setItem('identity', userData.phone); // used in profile and home
+      localStorage.setItem('userId', userData.phone); // User ID for likes/comments
       localStorage.setItem('userRole', 'parent');
       localStorage.setItem('name', userData.name || '-');
       localStorage.setItem('phone', userData.phone || '-');
