@@ -30,6 +30,7 @@ const ChildrenLogin = () => {
 
       // Save child info for profile page display
       localStorage.setItem('identity', credentials.randomId);
+      localStorage.setItem('userId', credentials.randomId); // User ID for likes/comments
       localStorage.setItem('userRole', 'child');
       localStorage.setItem('name', userData.name || credentials.randomId);
       localStorage.setItem('age', userData.age?.toString() || '-');

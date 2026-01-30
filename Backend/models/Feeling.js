@@ -20,7 +20,11 @@ const feelingSchema = new mongoose.Schema({
   likes: [likeSchema],
   comments: [commentSchema],
   timestamp: { type: Date, default: Date.now }
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
 
 // Virtual for likes count
 feelingSchema.virtual('likesCount').get(function() {

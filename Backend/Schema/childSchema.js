@@ -23,7 +23,7 @@ const childrenSchema = new mongoose.Schema({
     gender: {
       type: String,
       required: false,
-      enum: ['Male', 'Female', 'Other', '-'],
+      enum: ['Male', 'Female', 'Other','male', 'female', 'other','-'],
       default: '-',
     },
   }, {
