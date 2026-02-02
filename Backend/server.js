@@ -72,7 +72,8 @@ io.on("connection", (socket) => {
   // When a new feeling is posted from frontend
   socket.on("newFeeling", async (data) => {
     try {
-      console.log("New Feeling Received:", data);
+      console.log("New Feeling Received via WebSocket:", data);
+      console.log("Socket ID:", socket.id);
       
       // Save to database
       const newFeeling = new Feeling({
@@ -131,6 +132,8 @@ io.on("connection", (socket) => {
   // Handle new comment
   socket.on("newComment", async (data) => {
     try {
+      console.log("New Comment Received via WebSocket:", data);
+      console.log("Socket ID:", socket.id);
       const { feelingId, text, author, authorRole } = data;
       
       const feeling = await Feeling.findById(feelingId);
@@ -172,6 +175,12 @@ io.on("connection", (socket) => {
   socket.on("leaveRoom", (room) => {
     socket.leave(room);
     console.log(`User ${socket.id} left room: ${room}`);
+  });
+
+  // Handle ping for connection health
+  socket.on("ping", (data) => {
+    console.log(`Ping received from ${socket.id}:`, data);
+    socket.emit("pong", { timestamp: Date.now(), from: socket.id });
   });
 
   socket.on("disconnect", () => {

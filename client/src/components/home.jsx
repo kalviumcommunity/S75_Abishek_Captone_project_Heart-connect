@@ -27,78 +27,12 @@ const ChildHomePage = () => {
   const [postedFeelings, setPostedFeelings] = useState([]);
   const [commentBoxes, setCommentBoxes] = useState([]);
   const [commentInputs, setCommentInputs] = useState({});
-  const [isConnected, setIsConnected] = useState(false);
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeCommentIndex, setActiveCommentIndex] = useState(null);
   const [currentLikes, setCurrentLikes] = useState([]);
   const [showLikesModal, setShowLikesModal] = useState(false);
-
-  // Ensure all feelings in state are unique
-  const ensureUniqueFeelings = (feelings) => {
-    const uniqueFeelings = [];
-    const seenIds = new Set();
-    
-    for (const feeling of feelings) {
-      if (!seenIds.has(feeling._id)) {
-        seenIds.add(feeling._id);
-        uniqueFeelings.push(feeling);
-      }
-    }
-    
-    return uniqueFeelings;
-  };
-
-  // Effect to periodically clean up duplicates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPostedFeelings(prev => {
-        const cleaned = ensureUniqueFeelings(prev);
-        // Only update if there were actually duplicates
-        if (cleaned.length !== prev.length) {
-          console.log('Cleaned up duplicate feelings');
-          return cleaned;
-        }
-        return prev;
-      });
-    }, 5000); // Check every 5 seconds instead of 1
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  // Custom hook to ensure unique feelings
-  const addUniqueFeeling = (newFeeling) => {
-    setPostedFeelings(prev => {
-      // Create a new array with unique feelings only
-      const allFeelings = [newFeeling, ...prev];
-      const uniqueFeelings = [];
-      const seenIds = new Set();
-      
-      for (const feeling of allFeelings) {
-        if (!seenIds.has(feeling._id)) {
-          seenIds.add(feeling._id);
-          uniqueFeelings.push(feeling);
-        }
-      }
-      
-      return uniqueFeelings;
-    });
-  };
-
-  // Custom hook to set feelings ensuring uniqueness
-  const setUniqueFeelings = (newFeelings) => {
-    const uniqueFeelings = [];
-    const seenIds = new Set();
-    
-    for (const feeling of newFeelings) {
-      if (!seenIds.has(feeling._id)) {
-        seenIds.add(feeling._id);
-        uniqueFeelings.push(feeling);
-      }
-    }
-    
-    setPostedFeelings(uniqueFeelings);
-  };
 
   // Load existing feelings on mount
   useEffect(() => {
@@ -108,8 +42,7 @@ const ChildHomePage = () => {
         const response = await feelingsAPI.getAllFeelings();
         if (response.data?.success && response.data?.data) {
           console.log('Loaded feelings from API:', response.data.data);
-          // Set initial feelings
-          setUniqueFeelings(response.data.data);
+          setPostedFeelings(response.data.data);
         }
       } catch (err) {
         console.error('Error loading feelings:', err);
@@ -127,33 +60,54 @@ const ChildHomePage = () => {
     // Define named handler functions
     const handleConnect = () => {
       console.log('✅ Connected to server');
-      setIsConnected(true);
+      setError('');
     };
 
     const handleDisconnect = () => {
       console.log('❌ Disconnected from server');
-      setIsConnected(false);
+      setError('Lost connection to server. Messages may not update in real-time.');
+    };
+
+    const handleReconnect = () => {
+      console.log('🔄 Reconnected to server');
+      setError('');
+    };
+
+    const handleReconnectError = (error) => {
+      console.error('❌ Reconnection error:', error);
+      setError('Failed to reconnect to server. Please refresh the page.');
+    };
+
+    const handleReconnectFailed = () => {
+      console.error('❌ Reconnection failed');
+      setError('Could not reconnect to server. Please check your connection and refresh the page.');
     };
 
     const handleReceiveFeeling = (feeling) => {
       console.log('Received new feeling via socket:', feeling);
       
-      // Check if this feeling is from the current user to prevent duplication
-      const isCurrentUserFeeling = feeling.author === userInfo.identity && 
-                                  feeling.authorRole === userInfo.role;
-      
-      // If it's from current user, we already added it optimistically, so skip
-      if (isCurrentUserFeeling) {
-        console.log('Skipping duplicate feeling from current user');
-        return;
-      }
-      
-      // Use our custom function to ensure uniqueness
-      addUniqueFeeling(feeling);
+      setPostedFeelings(prev => {
+        // Skip if feeling already exists (check by ID)
+        const exists = prev.some(f => f._id === feeling._id);
+        if (exists) {
+          console.log(`Feeling ${feeling._id} already exists, skipping duplicate`);
+          return prev;
+        }
+        
+        // Skip if it's a temporary ID (from our own optimistic update)
+        if (typeof feeling._id === 'string' && feeling._id.startsWith('temp-')) {
+          console.log('Skipping temporary feeling ID from socket');
+          return prev;
+        }
+        
+        // Add the new feeling to the beginning
+        console.log('Adding new feeling to feed');
+        return [feeling, ...prev];
+      });
     };
 
     const handleLikeUpdated = (data) => {
-      console.log('Like updated:', data);
+      console.log('Like updated via socket:', data);
       setPostedFeelings(prev =>
         prev.map(feeling =>
           feeling._id === data.feelingId
@@ -168,27 +122,30 @@ const ChildHomePage = () => {
     };
 
     const handleCommentAdded = (data) => {
-      console.log('Comment added:', data);
-      
-      // Check if this comment is from the current user to prevent duplication
-      const isCurrentUserComment = data.comment.author === userInfo.identity && 
-                                  data.comment.authorRole === userInfo.role;
-      
-      // If it's from current user, we already added it optimistically, so skip
-      if (isCurrentUserComment) {
-        console.log('Skipping duplicate comment from current user');
-        return;
-      }
+      console.log('Comment added via socket:', data);
       
       setPostedFeelings(prev =>
-        prev.map(feeling =>
-          feeling._id === data.feelingId
-            ? {
-                ...feeling,
-                comments: [...(feeling.comments || []), data.comment]
-              }
-            : feeling
-        )
+        prev.map(feeling => {
+          if (feeling._id === data.feelingId) {
+            // Simple duplicate check - only check if exact same comment exists
+            const commentExists = feeling.comments?.some(c => 
+              c.text === data.comment.text && 
+              c.author === data.comment.author &&
+              c.timestamp === data.comment.timestamp
+            );
+            
+            if (commentExists) {
+              console.log('Duplicate comment detected, skipping');
+              return feeling;
+            }
+            
+            return {
+              ...feeling,
+              comments: [...(feeling.comments || []), data.comment]
+            };
+          }
+          return feeling;
+        })
       );
     };
 
@@ -200,6 +157,9 @@ const ChildHomePage = () => {
     // Attach listeners
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
+    socket.on('reconnect', handleReconnect);
+    socket.on('reconnect_error', handleReconnectError);
+    socket.on('reconnect_failed', handleReconnectFailed);
     socket.on('receiveFeeling', handleReceiveFeeling);
     socket.on('likeUpdated', handleLikeUpdated);
     socket.on('commentAdded', handleCommentAdded);
@@ -209,6 +169,9 @@ const ChildHomePage = () => {
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
+      socket.off('reconnect', handleReconnect);
+      socket.off('reconnect_error', handleReconnectError);
+      socket.off('reconnect_failed', handleReconnectFailed);
       socket.off('receiveFeeling', handleReceiveFeeling);
       socket.off('likeUpdated', handleLikeUpdated);
       socket.off('commentAdded', handleCommentAdded);
@@ -242,8 +205,9 @@ const ChildHomePage = () => {
       };
 
       // Optimistically add feeling to UI immediately for better UX
+      const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
       const newFeeling = {
-        _id: 'temp-' + Date.now(), // Temporary ID
+        _id: tempId,
         text: feelingText,
         author: userInfo.identity,
         authorRole: userInfo.role,
@@ -256,28 +220,37 @@ const ChildHomePage = () => {
       // Add to the beginning of the list
       setPostedFeelings(prev => [newFeeling, ...prev]);
 
-      // Emit to server via socket for real-time broadcasting
-      // The server will save to database and broadcast to all clients
-      socket.emit('newFeeling', feelingData);
-      
-      // Also send via API as a backup in case socket fails
+      // Send via API
       try {
         const response = await feelingsAPI.createFeeling(feelingData);
         if (response.data?.success) {
           console.log('Feeling posted successfully via API');
-          // Update the temporary feeling with the real ID from server
           const realFeeling = response.data.data;
-          setPostedFeelings(prev => 
-            prev.map(f => 
-              f._id === newFeeling._id ? { ...realFeeling, likesCount: 0 } : f
-            )
-          );
+          
+          // Replace temporary feeling with real one from server
+          setPostedFeelings(prev => {
+            // Remove the temporary feeling
+            const withoutTemp = prev.filter(f => f._id !== tempId);
+            
+            // Check if the real feeling already exists (from socket broadcast)
+            const realExists = withoutTemp.some(f => f._id === realFeeling._id);
+            
+            if (realExists) {
+              // Socket already added it, just remove temp
+              console.log('Real feeling already added by socket, removing temp');
+              return withoutTemp;
+            } else {
+              // Socket hasn't added it yet, add it ourselves
+              console.log('Adding real feeling from API response');
+              return [{ ...realFeeling, likesCount: 0 }, ...withoutTemp];
+            }
+          });
         }
       } catch (apiErr) {
-        console.error('API fallback failed:', apiErr);
+        console.error('API call failed:', apiErr);
         // Remove the optimistic feeling if API fails
-        setPostedFeelings(prev => prev.filter(f => f._id !== newFeeling._id));
-        throw apiErr; // Re-throw to be caught by the outer catch
+        setPostedFeelings(prev => prev.filter(f => f._id !== tempId));
+        throw apiErr;
       }
       
       // Clear the input field
@@ -331,16 +304,7 @@ const ChildHomePage = () => {
         )
       );
 
-      // Emit to server via socket for real-time updates
-      const likeData = {
-        feelingId,
-        userId: userInfo.userId,
-        userRole: userInfo.role
-      };
-      
-      socket.emit('toggleLike', likeData);
-      
-      // Also send via API as a backup
+      // Send via API
       try {
         const response = await feelingsAPI.toggleLike(feelingId, {
           userId: userInfo.userId,
@@ -348,29 +312,40 @@ const ChildHomePage = () => {
         });
         if (response.data?.success) {
           console.log('Like toggled successfully via API');
+          // Update with actual data from server
+          const updatedFeeling = response.data.data;
+          setPostedFeelings(prev =>
+            prev.map(f =>
+              f._id === feelingId
+                ? {
+                    ...f,
+                    likesCount: updatedFeeling.likesCount || updatedFeeling.likes?.length || 0,
+                    isLikedByUser: updatedFeeling.likes?.some(like => like.userId === userInfo.userId)
+                  }
+                : f
+            )
+          );
         }
       } catch (apiErr) {
-        console.error('API fallback failed:', apiErr);
-        // Continue since socket might still work
+        console.error('API call failed:', apiErr);
+        // Revert optimistic update
+        setPostedFeelings(prev =>
+          prev.map(f =>
+            f._id === feelingId
+              ? {
+                  ...f,
+                  isLikedByUser: currentLikeStatus,
+                  likesCount: currentLikeStatus ? newLikesCount + 1 : newLikesCount - 1
+                }
+              : f
+          )
+        );
+        throw apiErr;
       }
 
     } catch (err) {
       console.error('Error toggling like:', err);
       setError('Failed to update like: ' + (err.message || 'Unknown error'));
-      
-      // Revert optimistic update if there's an error
-      try {
-        const response = await feelingsAPI.getFeeling(feelingId);
-        if (response.data?.success) {
-          setPostedFeelings(prev =>
-            prev.map(f =>
-              f._id === feelingId ? response.data.data : f
-            )
-          );
-        }
-      } catch (revertErr) {
-        console.error('Failed to revert optimistic update:', revertErr);
-      }
     }
   };
 
@@ -432,11 +407,13 @@ const ChildHomePage = () => {
       };
 
       // Optimistically add comment to UI immediately for better UX
+      const tempTimestamp = new Date().toISOString();
       const newComment = {
         text: commentText,
         author: userInfo.identity,
         authorRole: userInfo.role,
-        timestamp: new Date().toISOString()
+        timestamp: tempTimestamp,
+        _tempId: 'temp-comment-' + Date.now()
       };
       
       setPostedFeelings(prev =>
@@ -450,34 +427,56 @@ const ChildHomePage = () => {
         )
       );
 
-      // Emit to server via socket for real-time broadcasting
-      socket.emit('newComment', {
-        feelingId,
-        ...commentData
-      });
-      
-      // Also send via API as a backup
+      // Send via API
       try {
         const response = await feelingsAPI.addComment(feelingId, commentData);
         if (response.data?.success) {
           console.log('Comment added successfully via API');
+          
+          // Replace temp comment with real one if needed
+          setPostedFeelings(prev =>
+            prev.map(f => {
+              if (f._id === feelingId) {
+                // Remove temp comment
+                const commentsWithoutTemp = f.comments.filter(c => c._tempId !== newComment._tempId);
+                
+                // Check if real comment already exists (from socket)
+                const realCommentExists = commentsWithoutTemp.some(c =>
+                  c.text === commentText &&
+                  c.author === userInfo.identity &&
+                  Math.abs(new Date(c.timestamp) - new Date(tempTimestamp)) < 2000
+                );
+                
+                if (realCommentExists) {
+                  // Socket already added it
+                  return { ...f, comments: commentsWithoutTemp };
+                } else {
+                  // Add the real comment from API
+                  const realComment = response.data.comment || {
+                    ...commentData,
+                    timestamp: new Date().toISOString()
+                  };
+                  return { ...f, comments: [...commentsWithoutTemp, realComment] };
+                }
+              }
+              return f;
+            })
+          );
         }
       } catch (apiErr) {
-        console.error('API fallback failed:', apiErr);
+        console.error('API call failed:', apiErr);
         // Remove the optimistic comment if API fails
         setPostedFeelings(prev =>
           prev.map(f =>
             f._id === feelingId
               ? {
                   ...f,
-                  comments: f.comments.filter(c => 
-                    !(c.text === commentText && c.author === userInfo.identity)
-                  )
+                  comments: f.comments.filter(c => c._tempId !== newComment._tempId)
                 }
               : f
           )
         );
-        throw apiErr; // Re-throw to be caught by the outer catch
+        throw apiErr;
       }
 
       // Clear input and keep comment box open
@@ -486,13 +485,13 @@ const ChildHomePage = () => {
     } catch (err) {
       console.error('Error adding comment:', err);
       setError('Failed to add comment: ' + (err.message || 'Unknown error'));
-      setActiveCommentIndex(null);
     } finally {
       setLoading(false);
     }
   };
 
   const getAuthorLabel = (feeling) => feeling.author;
+  
   const isLikedByUser = (feeling) => {
     // Check if the feeling has the isLikedByUser property set by the socket update
     if (feeling.isLikedByUser !== undefined) {
@@ -539,12 +538,7 @@ const ChildHomePage = () => {
           </ul>
         </nav>
 
-        {/* Real-time Connection Indicator */}
-        {isConnected && (
-          <div className="realtime-indicator">
-            🔴 Live
-          </div>
-        )}
+
 
         {/* Error Display */}
         {error && (
@@ -566,16 +560,9 @@ const ChildHomePage = () => {
           </div>
         )}
 
-        {/* Loading State */}
-        {loading && (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <p>Loading feelings...</p>
-          </div>
-        )}
-
         {/* Feelings Feed */}
         <div className="posted-feelings" style={{ marginTop: '20px', padding: '10px' }}>
-          {loading ? (
+          {loading && postedFeelings.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '20px' }}>
               <p>Loading feelings...</p>
             </div>
@@ -588,7 +575,7 @@ const ChildHomePage = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {postedFeelings && postedFeelings.map((feeling, index) => (
                 <FeelingComponent
-                  key={feeling._id || index}
+                  key={feeling._id}
                   feeling={feeling}
                   index={index}
                   userInfo={userInfo}

@@ -26,6 +26,8 @@ const socket = io(socketUrl, {
 // Connection event handlers
 socket.on('connect', () => {
   console.log('✅ Connected to server:', socket.id);
+  // Emit a test event to verify connection
+  socket.emit('ping', { timestamp: Date.now() });
 });
 
 socket.on('disconnect', (reason) => {
@@ -34,6 +36,13 @@ socket.on('disconnect', (reason) => {
 
 socket.on('connect_error', (error) => {
   console.error('❌ Connection error:', error);
+  // Try to reconnect manually
+  setTimeout(() => {
+    if (!socket.connected) {
+      console.log('Attempting manual reconnection...');
+      socket.connect();
+    }
+  }, 3000);
 });
 
 socket.on('reconnect', (attemptNumber) => {
@@ -42,6 +51,20 @@ socket.on('reconnect', (attemptNumber) => {
 
 socket.on('reconnect_error', (error) => {
   console.error('❌ Reconnection failed:', error);
+});
+
+socket.on('reconnect_failed', () => {
+  console.error('❌ Reconnection failed after max attempts');
+});
+
+// Handle ping/pong for connection health
+socket.on('pong', (data) => {
+  console.log('🏓 Pong received:', data);
+});
+
+// Global error handler
+socket.on('error', (error) => {
+  console.error('Socket error:', error);
 });
 
 export default socket;
